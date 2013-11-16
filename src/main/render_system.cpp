@@ -5,6 +5,9 @@
 
 RenderSystem::RenderSystem()
 : m_quit(false)
+, m_window(nullptr)
+, m_device(nullptr)
+, m_textureCache(nullptr)
 {
 
 }
@@ -13,6 +16,11 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
 	Framework::EventSystem* eventSys = static_cast<Framework::EventSystem*>(systemEnumerator.GetSystem("Events"));
 	eventSys->RegisterListener(this);
+
+	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
+	m_device = new Render::Device(*m_window);
+	m_textureCache = new Render::TextureCache(m_device);
+	m_window->Show();
 
 	return true;
 }
@@ -25,17 +33,8 @@ void RenderSystem::OnEventRecieved(const SDL_Event& e)
 	}
 }
 
-bool RenderSystem::Initialise()
-{
-	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
-	m_device = new Render::Device(*m_window);
-	m_window->Show();
-	return true;
-}
-
 bool RenderSystem::Tick()
 {
-	m_device->Clear(128, 128, 255, 255);
 	m_device->Present();
 	return !m_quit;
 }
@@ -43,6 +42,7 @@ bool RenderSystem::Tick()
 void RenderSystem::Shutdown()
 {
 	m_window->Hide();
+	delete m_textureCache;
 	delete m_device;
 	delete m_window;
 }
