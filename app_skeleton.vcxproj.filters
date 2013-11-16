@@ -2,5 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
+    <ClCompile Include="src\main\render_system.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\main\render_system.h" />
+    <ClInclude Include="src\main\system_registration.h" />
   </ItemGroup>
 </Project>

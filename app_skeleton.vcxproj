@@ -66,12 +66,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
-  <PostBuildEvent>
+    <PostBuildEvent>
       <Command>copy "$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86\SDL2.dll" "$(TargetDir)SDL2.dll" </Command>
     </PostBuildEvent>
- </ItemDefinitionGroup>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
+    <ClCompile Include="src\main\render_system.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\main\render_system.h" />
+    <ClInclude Include="src\main\system_registration.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -1,20 +1,11 @@
-// Link against the engine libs
+#include "system_registration.h"
+
+// Link against the engine
 #ifdef SDE_DEBUG
 	#pragma comment(lib,"../SDLEngine/bin/Debug/sdlengine.lib")
 #else
 	#pragma comment(lib,"../SDLEngine/bin/Release/sdlengine.lib")
 #endif
-
-#include "engine/engine_startup.h"
-
-class SystemRegistration : public Engine::ISystemRegistrar
-{
-public:
-	void RegisterSystems(Core::SystemManager& systemManager)
-	{
-
-	}
-};
 
 int main(int argc, char** argv)
 {
