@@ -41,6 +41,7 @@ bool RenderSystem::Tick()
 void RenderSystem::Shutdown()
 {
 	m_window->Hide();
+	m_spriteManager.Flush();
 	m_textureCache->Flush();
 	delete m_textureCache;
 	delete m_device;

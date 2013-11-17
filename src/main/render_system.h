@@ -6,6 +6,7 @@
 #include "render/window.h"
 #include "render/device.h"
 #include "render/texture_cache.h"
+#include "render/sprite_manager.h"
 
 class RenderSystem : public Core::ISystem
 {
@@ -22,4 +23,5 @@ private:
 	Render::Window* m_window;
 	Render::Device* m_device;
 	Render::TextureCache* m_textureCache;
+	Render::SpriteManager m_spriteManager;
 };
