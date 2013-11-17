@@ -2,12 +2,12 @@
 
 #include "core/system.h"
 #include "core/system_enumerator.h"
-#include "framework/event_listener.h"
+#include "core/event_listener.h"
 #include "render/window.h"
 #include "render/device.h"
 #include "render/texture_cache.h"
 
-class RenderSystem : public Core::ISystem, public Framework::IEventListener
+class RenderSystem : public Core::ISystem
 {
 public:
 	RenderSystem();
@@ -16,7 +16,7 @@ public:
 	void Shutdown();
 
 private:
-	void OnEventRecieved(const SDL_Event& e);
+	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 
 	Render::Window* m_window;

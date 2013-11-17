@@ -30,7 +30,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(SolutionDir)..\SDLEngine\engine\include;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(SolutionDir)..\SDLEngine\external\SDL2_image-2.0.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(SolutionDir)..\SDLEngine\external\SDL2_image-2.0.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86;$(SolutionDir)..\SDLEngine\external\SDL2_image-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup>
@@ -77,7 +77,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\render_system.h" />
-    <ClInclude Include="src\main\system_registration.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
