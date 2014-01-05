@@ -7,6 +7,7 @@
 #include "render/device.h"
 #include "render/texture_cache.h"
 #include "render/sprite_manager.h"
+#include "render/sprite_render.h"
 
 class RenderSystem : public Core::ISystem
 {
@@ -20,8 +21,12 @@ private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 
+	Render::SpriteDefHandle m_testSprite;
+	Render::SpriteDefHandle m_testSprite2;
+
 	Render::Window* m_window;
 	Render::Device* m_device;
 	Render::TextureCache* m_textureCache;
-	Render::SpriteManager m_spriteManager;
+	Render::SpriteManager* m_spriteManager;
+	Render::SpriteRender* m_spriteRender;
 };
