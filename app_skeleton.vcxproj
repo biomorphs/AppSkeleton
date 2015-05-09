@@ -69,6 +69,10 @@
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86\*.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
+    <Link />
+    <ClCompile>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
