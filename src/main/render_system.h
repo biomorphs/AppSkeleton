@@ -23,6 +23,9 @@ private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 
+	bool LoadShaders();
+	bool CreateMesh();
+
 	Render::Window* m_window;
 	Render::Device* m_device;
 	Render::RenderBuffer m_posBuffer;

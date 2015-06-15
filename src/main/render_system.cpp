@@ -14,12 +14,8 @@ RenderSystem::~RenderSystem()
 {
 }
 
-bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
+bool RenderSystem::LoadShaders()
 {
-	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
-	m_device = new Render::Device(*m_window);
-	m_window->Show();
-
 	std::string compileResult;
 	if (!m_vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "simple_vertex.txt", compileResult))
 	{
@@ -39,6 +35,11 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 		return false;
 	}
 
+	return true;
+}
+
+bool RenderSystem::CreateMesh()
+{
 	m_posBuffer.Create(9 * sizeof(float));
 	m_colourBuffer.Create(9 * sizeof(float));
 
@@ -59,6 +60,25 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_vertexArray.AddBuffer(0, &m_posBuffer, Render::VertexDataType::Float, 3);
 	m_vertexArray.AddBuffer(1, &m_colourBuffer, Render::VertexDataType::Float, 3);
 	m_vertexArray.Create();
+
+	return true;
+}
+
+bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
+{
+	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
+	m_device = new Render::Device(*m_window);
+	m_window->Show();
+
+	if (!LoadShaders())
+	{
+		return false;
+	}
+
+	if (!CreateMesh())
+	{
+		return false;
+	}
 
 	return true;
 }
