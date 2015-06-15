@@ -9,6 +9,7 @@
 #include "render/vertex_array.h"
 #include "render/shader_binary.h"
 #include "render/shader_program.h"
+#include "render/mesh.h"
 
 class RenderSystem : public Core::ISystem
 {
@@ -28,10 +29,8 @@ private:
 
 	Render::Window* m_window;
 	Render::Device* m_device;
-	Render::RenderBuffer m_posBuffer;
-	Render::RenderBuffer m_colourBuffer;
-	Render::VertexArray m_vertexArray;
 	Render::ShaderBinary m_vertexShader;
 	Render::ShaderBinary m_fragmentShader;
 	Render::ShaderProgram m_shaderProgram;
+	Render::Mesh m_mesh;
 };

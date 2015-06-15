@@ -1,7 +1,9 @@
 #include "render_system.h"
 #include "render/window.h"
 #include "render/device.h"
+#include "render/mesh_builder.h"
 #include "kernel/assert.h"
+#include <glm.hpp>
 
 RenderSystem::RenderSystem()
 : m_quit(false)
@@ -40,26 +42,16 @@ bool RenderSystem::LoadShaders()
 
 bool RenderSystem::CreateMesh()
 {
-	m_posBuffer.Create(9 * sizeof(float));
-	m_colourBuffer.Create(9 * sizeof(float));
+	Render::MeshBuilder meshBuilder;
+	uint32_t posStream = meshBuilder.AddVertexStream(3);
+	uint32_t colourStream = meshBuilder.AddVertexStream(3);
+	
+	meshBuilder.BeginChunk();
+	meshBuilder.AddTriangleData(posStream, glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, -0.5f, 0.0f));
+	meshBuilder.AddTriangleData(colourStream, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	meshBuilder.EndChunk();
 
-	const float c_triangle[] = {
-		0.0f, 0.5f, 0.0f,
-		-1.0f, -0.5f, 0.0f,
-		1.0f, -0.5f, 0.0f
-	};
-	const float c_colour[] = {
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f
-	};
-
-	m_posBuffer.SetData(0, sizeof(c_triangle), (void*)c_triangle);
-	m_colourBuffer.SetData(0, sizeof(c_colour), (void*)c_colour);
-
-	m_vertexArray.AddBuffer(0, &m_posBuffer, Render::VertexDataType::Float, 3);
-	m_vertexArray.AddBuffer(1, &m_colourBuffer, Render::VertexDataType::Float, 3);
-	m_vertexArray.Create();
+	meshBuilder.CreateMesh(m_mesh);
 
 	return true;
 }
@@ -94,19 +86,17 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 bool RenderSystem::Tick()
 {
 	m_device->BindShaderProgram(m_shaderProgram);
-	m_device->DrawArray(m_vertexArray, Render::PrimitiveType::Triangles, 0, 3);
+	m_device->DrawArray(m_mesh.GetVertexArray(), Render::PrimitiveType::Triangles, 0, 3);
 	m_device->Present();
 	return !m_quit;
 }
 
 void RenderSystem::Shutdown()
 {	
+	m_mesh.Destroy();
 	m_shaderProgram.Destroy();
 	m_vertexShader.Destroy();
 	m_fragmentShader.Destroy();
-	m_vertexArray.Destroy();
-	m_posBuffer.Destroy();
-	m_colourBuffer.Destroy();
 	m_window->Hide();
 	delete m_device;
 	delete m_window;
