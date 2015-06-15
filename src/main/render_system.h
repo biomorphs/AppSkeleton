@@ -5,6 +5,8 @@
 #include "core/event_listener.h"
 #include "render/window.h"
 #include "render/device.h"
+#include "render/render_buffer.h"
+#include "render/vertex_array.h"
 
 class RenderSystem : public Core::ISystem
 {
@@ -20,4 +22,6 @@ private:
 
 	Render::Window* m_window;
 	Render::Device* m_device;
+	Render::RenderBuffer m_posBuffer;
+	Render::VertexArray m_vertexArray;
 };
