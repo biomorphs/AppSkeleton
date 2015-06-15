@@ -16,7 +16,7 @@ RenderSystem::~RenderSystem()
 {
 }
 
-bool RenderSystem::LoadShaders()
+bool RenderSystem::CreateMaterial()
 {
 	std::string compileResult;
 	if (!m_vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "simple_vertex.txt", compileResult))
@@ -37,6 +37,8 @@ bool RenderSystem::LoadShaders()
 		return false;
 	}
 
+	m_material.SetShaderProgram(&m_shaderProgram);
+
 	return true;
 }
 
@@ -47,11 +49,12 @@ bool RenderSystem::CreateMesh()
 	uint32_t colourStream = meshBuilder.AddVertexStream(3);
 	
 	meshBuilder.BeginChunk();
-	meshBuilder.AddTriangleData(posStream, glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(-1.0f, -0.5f, 0.0f), glm::vec3(1.0f, -0.5f, 0.0f));
-	meshBuilder.AddTriangleData(colourStream, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	meshBuilder.AddTriangle(posStream, glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f));
+	meshBuilder.AddTriangle(colourStream, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	meshBuilder.EndChunk();
 
 	meshBuilder.CreateMesh(m_mesh);
+	m_mesh.SetMaterial(&m_material);
 
 	return true;
 }
@@ -62,7 +65,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_device = new Render::Device(*m_window);
 	m_window->Show();
 
-	if (!LoadShaders())
+	if (!CreateMaterial())
 	{
 		return false;
 	}
@@ -85,7 +88,7 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
-	m_device->BindShaderProgram(m_shaderProgram);
+	m_device->BindShaderProgram(*m_mesh.GetMaterial()->GetShaderProgram());
 	m_device->DrawArray(m_mesh.GetVertexArray(), Render::PrimitiveType::Triangles, 0, 3);
 	m_device->Present();
 	return !m_quit;
