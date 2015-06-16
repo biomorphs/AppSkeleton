@@ -5,6 +5,7 @@
 #include "kernel/assert.h"
 #include "vox/block.h"
 #include "vox/paged_blocks.h"
+#include "vox/model.h"
 
 RenderSystem::RenderSystem()
 : m_quit(false)
@@ -101,6 +102,10 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	pagedBlocks.VoxelAt(56252, 1824, 10257);
 
 	SDE_LOG("%d pages using %d bytes", (int)pagedBlocks.TotalBlocks(), (int)pagedBlocks.TotalVoxelMemory());
+
+	Vox::Model<uint8_t, 32> model;
+	model.SetModelExtents(Math::Box3(glm::vec3(-128.0f), glm::vec3(128.0f)), glm::vec3(1.0f));
+	model.WriteData(Math::Box3(glm::vec3(-129.0f), glm::vec3(-60.0f)));
 
 	return true;
 }
