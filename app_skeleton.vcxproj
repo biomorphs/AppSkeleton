@@ -30,7 +30,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm\glm;$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm\glm;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86;$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup>

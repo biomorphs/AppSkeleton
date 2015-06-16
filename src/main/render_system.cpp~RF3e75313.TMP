@@ -3,8 +3,8 @@
 #include "render/device.h"
 #include "render/mesh_builder.h"
 #include "kernel/assert.h"
-#include "vox/block.h"
-#include "vox/paged_blocks.h"
+#include <glm.hpp>
+#include "math/morton_encoding.h"
 
 RenderSystem::RenderSystem()
 : m_quit(false)
@@ -66,41 +66,43 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_device = new Render::Device(*m_window);
 	m_window->Show();
 
-	CreateMaterial();
-	CreateMesh();
+	if (!CreateMaterial())
+	{
+		return false;
+	}
 
-	Vox::Block<uint8_t, 16> testBlock;
-	Vox::Block<uint8_t, 16> other(std::move(testBlock));
-	Vox::Block<uint8_t, 16> another;
-	another = std::move(other);
-	another = std::move(another);
+	if (!CreateMesh())
+	{
+		return false;
+	}
 
-	auto& clumpX2Y0Z1 = another.ClumpAt(2, 0, 1);
-	clumpX2Y0Z1.VoxelAt(1, 0, 1) = 5;
-	SDE_ASSERT(another.VoxelAt(5, 0, 3) == clumpX2Y0Z1.VoxelAt(1, 0, 1));
+	const uint32_t c_dimensions = 256;
+	const uint64_t c_maxEntries = c_dimensions * c_dimensions * c_dimensions;
+	bool *testMask = new bool[c_maxEntries];
+	memset(testMask, 0, c_maxEntries * sizeof(bool));
+	for (uint32_t x = 0; x < c_dimensions; ++x)
+	{
+		for (uint32_t y = 0; y < c_dimensions; ++y)
+		{
+			for (uint32_t z = 0; z < c_dimensions; ++z)
+			{
+				// Test that encode and decode match
+				uint64_t encoded = Math::MortonEncode(x, y, z);
+				SDE_ASSERT(encoded < c_maxEntries);
 
-	const Vox::Block<uint8_t, 16> constBlock;
-	const auto& constClumpX2Y0Z1 = constBlock.ClumpAt(2, 0, 1);
-	SDE_ASSERT(&constBlock.VoxelAt(5, 0, 3) == &constClumpX2Y0Z1.VoxelAt(1, 0, 1));
+				// Test for clashes
+				/*SDE_ASSERT(testMask[encoded] == false);
+				testMask[encoded] = true;*/
 
-	Vox::PagedBlocks< Vox::Block<uint8_t, 16 > > pagedBlocks;
-	auto block = pagedBlocks.BlockAt(10, 2, 12);
-	auto blockSearch = pagedBlocks.BlockAt(10, 2, 12);
-	SDE_ASSERT(block == blockSearch);
-
-	// find clump 163, 37, 199 (should be equal to block 10,2,12, chunk 3,5,7
-	auto& testClump = block->ClumpAt(3, 5, 7);
-	auto testClump2 = pagedBlocks.ClumpAt(163, 37, 199);
-	SDE_ASSERT(&testClump == testClump2);
-
-	// find voxel 327, 74, 399, which should be = voxel 1,0,1 in clump 163, 37, 199
-	auto testVoxel = pagedBlocks.VoxelAt(327, 74, 399);
-	auto testVoxel2 = &testClump2->VoxelAt(1, 0, 1);
-	SDE_ASSERT(testVoxel == testVoxel2);
-
-	pagedBlocks.VoxelAt(56252, 1824, 10257);
-
-	SDE_LOG("%d pages using %d bytes", (int)pagedBlocks.TotalBlocks(), (int)pagedBlocks.TotalVoxelMemory());
+				uint32_t testX = 0, testY = 0, testZ = 0;
+				Math::MortonDecode(encoded, testX, testY, testZ);
+				SDE_ASSERT(testX == x);
+				SDE_ASSERT(testY == y);
+				SDE_ASSERT(testZ == z);
+			}
+		}
+	}
+	delete[] testMask;
 
 	return true;
 }
