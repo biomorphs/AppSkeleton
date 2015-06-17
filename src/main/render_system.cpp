@@ -1,8 +1,11 @@
 #include "render_system.h"
+#include "kernel/assert.h"
 #include "render/window.h"
 #include "render/device.h"
 #include "render/mesh_builder.h"
-#include "kernel/assert.h"
+#include "render/shader_binary.h"
+#include "render/shader_program.h"
+#include "render/material.h"
 #include "vox/block.h"
 #include "vox/paged_blocks.h"
 #include "vox/model.h"
@@ -43,6 +46,7 @@ std::shared_ptr<Render::Material> RenderSystem::CreateMaterial()
 
 	auto material = std::make_shared<Render::Material>();
 	material->SetShaderProgram(shaderProgram);
+	material->GlobalDefinitions().m_mvpUniformHandle = shaderProgram->GetUniformHandle("MVP");
 
 	return material;
 }
@@ -164,13 +168,11 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
-	m_device->BindShaderProgram(*m_mesh->GetMaterial()->GetShaderProgram());
-	m_device->BindVertexArray(m_mesh->GetVertexArray());
-	for (auto chunk : m_mesh->GetChunks())
-	{
-		m_device->DrawPrimitives(Render::PrimitiveType::Triangles, chunk.m_firstVertex, chunk.m_vertexCount);
-	}	
+	m_forwardPass.GetCamera().LookAt(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_forwardPass.AddInstance(m_mesh, glm::mat4());
+	m_forwardPass.RenderAll(*m_device);
 	m_device->Present();
+	m_forwardPass.Reset();
 	return !m_quit;
 }
 

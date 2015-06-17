@@ -2,12 +2,15 @@
 layout(location = 0) in vec3 pos_modelSpace;
 layout(location = 1) in vec3 colour;
 
+uniform mat4 MVP;
+
 out vec4 colourV;
 
 void main()
 {
-	gl_Position.xyz = pos_modelSpace;
-    gl_Position.w = 1.0;
+	vec4 v = vec4(pos_modelSpace,1); // Transform an homogeneous 4D vector, remember ?
+    gl_Position = MVP * v;
+
 	colourV.xyz = colour;
 	colourV.w = 1.0;
 }

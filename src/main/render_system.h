@@ -1,15 +1,16 @@
 #pragma once
 
 #include "core/system.h"
-#include "core/system_enumerator.h"
-#include "core/event_listener.h"
-#include "render/window.h"
-#include "render/device.h"
-#include "render/shader_binary.h"
-#include "render/shader_program.h"
-#include "render/mesh.h"
-#include "render/material.h"
+#include "render/render_pass.h"
 #include <memory>
+
+namespace Render
+{
+	class Window;
+	class Device;
+	class Material;
+	class Mesh;
+}
 
 class RenderSystem : public Core::ISystem
 {
@@ -29,5 +30,6 @@ private:
 
 	Render::Window* m_window;
 	Render::Device* m_device;
+	Render::RenderPass m_forwardPass;
 	std::shared_ptr<Render::Mesh> m_mesh;
 };
