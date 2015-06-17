@@ -9,6 +9,7 @@
 #include "render/shader_program.h"
 #include "render/mesh.h"
 #include "render/material.h"
+#include <memory>
 
 class RenderSystem : public Core::ISystem
 {
@@ -23,14 +24,10 @@ private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 
-	bool CreateMaterial();
+	std::shared_ptr<Render::Material> CreateMaterial();
 	bool CreateMesh();
 
 	Render::Window* m_window;
 	Render::Device* m_device;
-	Render::ShaderBinary m_vertexShader;
-	Render::ShaderBinary m_fragmentShader;
-	Render::ShaderProgram m_shaderProgram;
-	Render::Mesh m_mesh;
-	Render::Material m_material;
+	std::shared_ptr<Render::Mesh> m_mesh;
 };

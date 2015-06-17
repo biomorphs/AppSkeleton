@@ -18,30 +18,33 @@ RenderSystem::~RenderSystem()
 {
 }
 
-bool RenderSystem::CreateMaterial()
+std::shared_ptr<Render::Material> RenderSystem::CreateMaterial()
 {
 	std::string compileResult;
-	if (!m_vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "simple_vertex.txt", compileResult))
+	Render::ShaderBinary vertexShader, fragmentShader;
+	if (!vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "simple_vertex.txt", compileResult))
 	{
 		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
 		return false;
 	}
 
-	if (!m_fragmentShader.CompileFromFile(Render::ShaderType::FragmentShader, "simple_fragment.txt", compileResult))
+	if (!fragmentShader.CompileFromFile(Render::ShaderType::FragmentShader, "simple_fragment.txt", compileResult))
 	{
 		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
 		return false;
 	}
 
-	if (!m_shaderProgram.Create(m_vertexShader, m_fragmentShader, compileResult))
+	auto shaderProgram = std::make_shared<Render::ShaderProgram>();
+	if (!shaderProgram->Create(vertexShader, fragmentShader, compileResult))
 	{
 		SDE_LOG("Failed to link shaders: \r\n\t%s", compileResult.c_str());
 		return false;
 	}
 
-	m_material.SetShaderProgram(&m_shaderProgram);
+	auto material = std::make_shared<Render::Material>();
+	material->SetShaderProgram(shaderProgram);
 
-	return true;
+	return material;
 }
 
 bool RenderSystem::CreateMesh()
@@ -51,12 +54,39 @@ bool RenderSystem::CreateMesh()
 	uint32_t colourStream = meshBuilder.AddVertexStream(3);
 	
 	meshBuilder.BeginChunk();
-	meshBuilder.AddTriangle(posStream, glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f));
-	meshBuilder.AddTriangle(colourStream, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	{
+		meshBuilder.BeginTriangle();
+		{
+			meshBuilder.SetStreamData(posStream, 
+									  glm::vec3(-0.5f, -0.5f, 0.0f), 
+									  glm::vec3(0.5f, -0.5f, 0.0f), 
+									  glm::vec3(0.5f, 0.5f, 0.0f));
+			meshBuilder.SetStreamData(colourStream, 
+									  glm::vec3(1.0f, 0.0f, 0.0f), 
+									  glm::vec3(0.0f, 1.0f, 0.0f), 
+									  glm::vec3(0.0f, 0.0f, 1.0f));
+		}
+		meshBuilder.EndTriangle();
+		meshBuilder.BeginTriangle();
+		{
+			meshBuilder.SetStreamData(posStream,
+									  glm::vec3(-0.5f, -0.5f, 0.0f),
+									  glm::vec3(0.5f, 0.5f, 0.0f),
+									  glm::vec3(-0.5f, 0.5f, 0.0f));
+			meshBuilder.SetStreamData(colourStream,
+									  glm::vec3(1.0f, 0.0f, 0.0f),
+									  glm::vec3(0.0f, 0.0f, 1.0f),
+									  glm::vec3(0.0f, 1.0f, 0.0f));
+		}
+		meshBuilder.EndTriangle();
+	}
 	meshBuilder.EndChunk();
 
-	meshBuilder.CreateMesh(m_mesh);
-	m_mesh.SetMaterial(&m_material);
+	m_mesh = std::make_shared<Render::Mesh>();
+	meshBuilder.CreateMesh(*m_mesh);
+
+	auto material = CreateMaterial();
+	m_mesh->SetMaterial(material);
 
 	return true;
 }
@@ -67,7 +97,6 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_device = new Render::Device(*m_window);
 	m_window->Show();
 
-	CreateMaterial();
 	CreateMesh();
 
 	Vox::Block<uint8_t, 16> testBlock;
@@ -109,7 +138,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	{
 		// voxel helper to avoid tight loop
 		#define VOXELPOS(x,y,z)	clumpOrigin + (glm::vec3(x, y, z) * voxelSize) + voxelCenterOffset
-		auto clumpData = theClump.GetClump();
+		//auto clumpData = theClump.GetClump();
 		const glm::vec3 v0Pos = VOXELPOS(0, 0, 0);
 		const glm::vec3 v1Pos = VOXELPOS(1, 0, 0);
 		const glm::vec3 v2Pos = VOXELPOS(0, 1, 0);
@@ -120,9 +149,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 		const glm::vec3 v7Pos = VOXELPOS(1, 1, 1);
 	};
 
-	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
-	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), TestModel::IteratorAccess::ReadOnly, iterFn);
-	model.IterateForArea(Math::Box3(glm::vec3(16.0f), glm::vec3(20.0f)), TestModel::IteratorAccess::ReadOnly, iterFn);
+	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(2.0f, 2.0f, 2.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
 
 	return true;
 }
@@ -137,18 +164,19 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
-	m_device->BindShaderProgram(*m_mesh.GetMaterial()->GetShaderProgram());
-	m_device->DrawArray(m_mesh.GetVertexArray(), Render::PrimitiveType::Triangles, 0, 3);
+	m_device->BindShaderProgram(*m_mesh->GetMaterial()->GetShaderProgram());
+	m_device->BindVertexArray(m_mesh->GetVertexArray());
+	for (auto chunk : m_mesh->GetChunks())
+	{
+		m_device->DrawPrimitives(Render::PrimitiveType::Triangles, chunk.m_firstVertex, chunk.m_vertexCount);
+	}	
 	m_device->Present();
 	return !m_quit;
 }
 
 void RenderSystem::Shutdown()
 {	
-	m_mesh.Destroy();
-	m_shaderProgram.Destroy();
-	m_vertexShader.Destroy();
-	m_fragmentShader.Destroy();
+	m_mesh = nullptr;
 	m_window->Hide();
 	delete m_device;
 	delete m_window;
