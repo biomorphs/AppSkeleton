@@ -85,27 +85,44 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	SDE_ASSERT(&constBlock.VoxelAt(5, 0, 3) == &constClumpX2Y0Z1.VoxelAt(1, 0, 1));
 
 	Vox::PagedBlocks< Vox::Block<uint8_t, 16 > > pagedBlocks;
-	auto block = pagedBlocks.BlockAt(10, 2, 12);
-	auto blockSearch = pagedBlocks.BlockAt(10, 2, 12);
+	auto block = pagedBlocks.BlockAt(glm::ivec3(10, 2, 12));
+	auto blockSearch = pagedBlocks.BlockAt(glm::ivec3(10, 2, 12));
 	SDE_ASSERT(block == blockSearch);
 
 	// find clump 163, 37, 199 (should be equal to block 10,2,12, chunk 3,5,7
 	auto& testClump = block->ClumpAt(3, 5, 7);
-	auto testClump2 = pagedBlocks.ClumpAt(163, 37, 199);
+	auto testClump2 = pagedBlocks.ClumpAt(glm::ivec3(163, 37, 199));
 	SDE_ASSERT(&testClump == testClump2);
 
 	// find voxel 327, 74, 399, which should be = voxel 1,0,1 in clump 163, 37, 199
-	auto testVoxel = pagedBlocks.VoxelAt(327, 74, 399);
+	auto testVoxel = pagedBlocks.VoxelAt(glm::ivec3(327, 74, 399));
 	auto testVoxel2 = &testClump2->VoxelAt(1, 0, 1);
 	SDE_ASSERT(testVoxel == testVoxel2);
-
-	pagedBlocks.VoxelAt(56252, 1824, 10257);
-
+	pagedBlocks.VoxelAt(glm::ivec3(56252, 1824, 10257));
 	SDE_LOG("%d pages using %d bytes", (int)pagedBlocks.TotalBlocks(), (int)pagedBlocks.TotalVoxelMemory());
 
-	Vox::Model<uint8_t, 32> model;
-	model.SetModelExtents(Math::Box3(glm::vec3(-128.0f), glm::vec3(128.0f)), glm::vec3(1.0f));
-	model.WriteData(Math::Box3(glm::vec3(-129.0f), glm::vec3(-60.0f)));
+	typedef Vox::Model<uint8_t, 32> TestModel;
+	TestModel model;
+	model.SetVoxelSize(glm::vec3(0.125));
+
+	auto iterFn = [](TestModel::ClumpDataAccessor& theClump, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenterOffset)
+	{
+		// voxel helper to avoid tight loop
+		#define VOXELPOS(x,y,z)	clumpOrigin + (glm::vec3(x, y, z) * voxelSize) + voxelCenterOffset
+		auto clumpData = theClump.GetClump();
+		const glm::vec3 v0Pos = VOXELPOS(0, 0, 0);
+		const glm::vec3 v1Pos = VOXELPOS(1, 0, 0);
+		const glm::vec3 v2Pos = VOXELPOS(0, 1, 0);
+		const glm::vec3 v3Pos = VOXELPOS(1, 1, 0);
+		const glm::vec3 v4Pos = VOXELPOS(0, 0, 1);
+		const glm::vec3 v5Pos = VOXELPOS(1, 0, 1);
+		const glm::vec3 v6Pos = VOXELPOS(0, 1, 1);
+		const glm::vec3 v7Pos = VOXELPOS(1, 1, 1);
+	};
+
+	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
+	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), TestModel::IteratorAccess::ReadOnly, iterFn);
+	model.IterateForArea(Math::Box3(glm::vec3(16.0f), glm::vec3(20.0f)), TestModel::IteratorAccess::ReadOnly, iterFn);
 
 	return true;
 }
