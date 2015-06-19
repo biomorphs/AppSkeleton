@@ -142,7 +142,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	{
 		// voxel helper to avoid tight loop
 		#define VOXELPOS(x,y,z)	clumpOrigin + (glm::vec3(x, y, z) * voxelSize) + voxelCenterOffset
-		//auto clumpData = theClump.GetClump();
+		auto clumpData = theClump.GetClump();
 		const glm::vec3 v0Pos = VOXELPOS(0, 0, 0);
 		const glm::vec3 v1Pos = VOXELPOS(1, 0, 0);
 		const glm::vec3 v2Pos = VOXELPOS(0, 1, 0);
@@ -153,7 +153,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 		const glm::vec3 v7Pos = VOXELPOS(1, 1, 1);
 	};
 
-	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(2.0f, 2.0f, 2.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
+ 	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
 
 	return true;
 }
@@ -168,8 +168,13 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
+	static float r = 0.0f;
+	r += 0.0001f;
+	glm::mat4 modelMat = glm::rotate(glm::mat4(), r, glm::vec3(0.0f, 1.0f, 0.0f));
 	m_forwardPass.GetCamera().LookAt(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	m_forwardPass.AddInstance(m_mesh, glm::mat4());
+	m_forwardPass.AddInstance(m_mesh, modelMat);
+
+	m_device->ClearColourDepthTarget(glm::vec4(0.3f, 0.3f, 0.3f, 1.0f));
 	m_forwardPass.RenderAll(*m_device);
 	m_device->Present();
 	m_forwardPass.Reset();
