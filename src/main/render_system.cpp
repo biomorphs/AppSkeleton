@@ -9,6 +9,7 @@
 #include "vox/block.h"
 #include "vox/paged_blocks.h"
 #include "vox/model.h"
+#include <Windows.h>
 
 RenderSystem::RenderSystem()
 : m_quit(false)
@@ -95,6 +96,19 @@ bool RenderSystem::CreateMesh()
 	return true;
 }
 
+class BlockAllocator
+{
+public:
+	static void* AllocateBlock(size_t dataSize)
+	{
+		return VirtualAlloc(nullptr, dataSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	}
+	static void FreeBlock(void* baseAddress)
+	{
+		VirtualFree(baseAddress, 0, MEM_RELEASE);
+	}
+};
+
 bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
 	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
@@ -103,9 +117,10 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 
 	CreateMesh();
 
-	Vox::Block<uint8_t, 16> testBlock;
-	Vox::Block<uint8_t, 16> other(std::move(testBlock));
-	Vox::Block<uint8_t, 16> another;
+	typedef Vox::Block<uint8_t, 16, BlockAllocator> MyBlockType;
+	MyBlockType testBlock;
+	MyBlockType other(std::move(testBlock));
+	MyBlockType another;
 	another = std::move(other);
 	another = std::move(another);
 
@@ -113,11 +128,11 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	clumpX2Y0Z1.VoxelAt(1, 0, 1) = 5;
 	SDE_ASSERT(another.VoxelAt(5, 0, 3) == clumpX2Y0Z1.VoxelAt(1, 0, 1));
 
-	const Vox::Block<uint8_t, 16> constBlock;
+	const MyBlockType constBlock;
 	const auto& constClumpX2Y0Z1 = constBlock.ClumpAt(2, 0, 1);
 	SDE_ASSERT(&constBlock.VoxelAt(5, 0, 3) == &constClumpX2Y0Z1.VoxelAt(1, 0, 1));
 
-	Vox::PagedBlocks< Vox::Block<uint8_t, 16 > > pagedBlocks;
+	Vox::PagedBlocks< MyBlockType > pagedBlocks;
 	auto block = pagedBlocks.BlockAt(glm::ivec3(10, 2, 12));
 	auto blockSearch = pagedBlocks.BlockAt(glm::ivec3(10, 2, 12));
 	SDE_ASSERT(block == blockSearch);
@@ -134,7 +149,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	pagedBlocks.VoxelAt(glm::ivec3(56252, 1824, 10257));
 	SDE_LOG("%d pages using %d bytes", (int)pagedBlocks.TotalBlocks(), (int)pagedBlocks.TotalVoxelMemory());
 
-	typedef Vox::Model<uint8_t, 32> TestModel;
+	typedef Vox::Model<uint8_t, 64, BlockAllocator> TestModel;
 	TestModel model;
 	model.SetVoxelSize(glm::vec3(0.125));
 
@@ -154,6 +169,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	};
 
  	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
+	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
 
 	return true;
 }
