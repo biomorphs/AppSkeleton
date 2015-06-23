@@ -168,8 +168,7 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 		const glm::vec3 v7Pos = VOXELPOS(1, 1, 1);
 	};
 
- 	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
-	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
+	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(256.0f, 0.25f, 256.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
 
 	return true;
 }
