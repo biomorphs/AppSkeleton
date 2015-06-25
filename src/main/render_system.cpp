@@ -1,5 +1,7 @@
 #include "render_system.h"
 #include "kernel/assert.h"
+#include "core/system_enumerator.h"
+#include "engine/input_system.h"
 #include "render/window.h"
 #include "render/device.h"
 #include "render/mesh_builder.h"
@@ -111,6 +113,7 @@ public:
 
 bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
+	m_inputSystem = (Engine::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_window = new Render::Window(Render::Window::Properties("Skeleton Application", 640, 480));
 	m_device = new Render::Device(*m_window);
 	m_window->Show();
@@ -183,10 +186,14 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
+	static glm::vec3 pos(0.0f, 0.0f, -1.0f);
 	static float r = 0.0f;
-	r += 0.0001f;
+	r += 0.001f;
+
+	pos.z += (m_inputSystem->ControllerState(0)->m_rightStickAxes[1] * 0.01f);
+
 	glm::mat4 modelMat = glm::rotate(glm::mat4(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	m_forwardPass.GetCamera().LookAt(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	m_forwardPass.GetCamera().LookAt(pos, pos + glm::vec3(0.0f,0.0f,1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_forwardPass.AddInstance(m_mesh, modelMat);
 
 	m_device->ClearColourDepthTarget(glm::vec4(0.3f, 0.3f, 0.3f, 1.0f));

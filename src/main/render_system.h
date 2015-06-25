@@ -12,6 +12,11 @@ namespace Render
 	class Mesh;
 }
 
+namespace Engine
+{
+	class InputSystem;
+}
+
 class RenderSystem : public Core::ISystem
 {
 public:
@@ -32,4 +37,5 @@ private:
 	Render::Device* m_device;
 	Render::RenderPass m_forwardPass;
 	std::shared_ptr<Render::Mesh> m_mesh;
+	Engine::InputSystem* m_inputSystem;
 };
