@@ -2,6 +2,7 @@
 
 #include "core/system.h"
 #include "render/render_pass.h"
+#include "sde/debug_camera_controller.h"
 #include <memory>
 
 namespace Render
@@ -38,4 +39,6 @@ private:
 	Render::RenderPass m_forwardPass;
 	std::shared_ptr<Render::Mesh> m_mesh;
 	Engine::InputSystem* m_inputSystem;
+	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
+	
 };

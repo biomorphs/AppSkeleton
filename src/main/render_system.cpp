@@ -11,6 +11,7 @@
 #include "vox/block.h"
 #include "vox/paged_blocks.h"
 #include "vox/model.h"
+#include "sde/debug_camera_controller.h"
 #include <Windows.h>
 
 RenderSystem::RenderSystem()
@@ -173,6 +174,8 @@ bool RenderSystem::PreInit(Core::ISystemEnumerator& systemEnumerator)
 
 	model.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(256.0f, 0.25f, 256.0f)), TestModel::IteratorAccess::ReadWrite, iterFn);
 
+	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
+
 	return true;
 }
 
@@ -186,15 +189,10 @@ void RenderSystem::OnEventRecieved(const Core::EngineEvent& e)
 
 bool RenderSystem::Tick()
 {
-	static glm::vec3 pos(0.0f, 0.0f, -1.0f);
-	static float r = 0.0f;
-	r += 0.001f;
+	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016 );
+	m_debugCameraController->ApplyToCamera(m_forwardPass.GetCamera());
 
-	pos.z += (m_inputSystem->ControllerState(0)->m_rightStickAxes[1] * 0.01f);
-
-	glm::mat4 modelMat = glm::rotate(glm::mat4(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	m_forwardPass.GetCamera().LookAt(pos, pos + glm::vec3(0.0f,0.0f,1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	m_forwardPass.AddInstance(m_mesh, modelMat);
+	m_forwardPass.AddInstance(m_mesh, glm::mat4());
 
 	m_device->ClearColourDepthTarget(glm::vec4(0.3f, 0.3f, 0.3f, 1.0f));
 	m_forwardPass.RenderAll(*m_device);
