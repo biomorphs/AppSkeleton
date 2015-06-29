@@ -7,8 +7,6 @@
 
 namespace Render
 {
-	class Window;
-	class Device;
 	class Material;
 	class Mesh;
 }
@@ -18,12 +16,19 @@ namespace Engine
 	class InputSystem;
 }
 
-class RenderSystem : public Core::ISystem
+namespace SDE
+{
+	class RenderSystem;
+}
+
+class AppSkeleton : public Core::ISystem
 {
 public:
-	RenderSystem();
-	virtual ~RenderSystem();
+	AppSkeleton();
+	virtual ~AppSkeleton();
 	bool PreInit(Core::ISystemEnumerator& systemEnumerator);
+	bool PostInit();
+
 	bool Tick();
 	void Shutdown();
 
@@ -34,11 +39,9 @@ private:
 	std::shared_ptr<Render::Material> CreateMaterial();
 	bool CreateMesh();
 
-	Render::Window* m_window;
-	Render::Device* m_device;
-	Render::RenderPass m_forwardPass;
+	uint32_t m_forwardPassId;
+	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
 	std::shared_ptr<Render::Mesh> m_mesh;
 	Engine::InputSystem* m_inputSystem;
-	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
-	
+	SDE::RenderSystem* m_renderSystem;
 };
