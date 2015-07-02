@@ -10,9 +10,7 @@
 #include "render/shader_program_asset.h"
 #include "sde/debug_camera_controller.h"
 #include "sde/render_system.h"
-#include "core/asset_creator.h"
-#include "core/asset_serialiser.h"
-#include "core/asset_database.h"
+#include "sde/asset_system.h"
 
 AppSkeleton::AppSkeleton()
 : m_quit(false)
@@ -27,57 +25,32 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
 	m_inputSystem = (Engine::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
+	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
 	return true;
 }
 
 bool AppSkeleton::PostInit()
 {
-	Core::AssetDatabase m_assets;
-
-	Core::AssetCreator assetCreator;
+	// register asset factories
+	auto& assetCreator = m_assetSystem->GetCreator();
 	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
 	assetCreator.RegisterFactory<Render::ShaderProgramAssetFactory>(Render::ShaderProgramAsset::c_assetType);
 
-	Core::AssetSerialiser assetLoader(m_assets, assetCreator);
- 	if (!assetLoader.Load("assets", "simple_material"))
-	{
-		return false;
-	}
-
-	CreateMesh();
+	// Set up camera controller and forward pass
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_forwardPassId = m_renderSystem->CreatePass("Forward");
+
+	// load material, on completion we build the mesh
+	auto onMaterialLoaded = [this] (const std::string& asset, bool result)
+	{		
+		auto loadedAsset = this->m_assetSystem->GetAsset(asset);
+		auto renderMaterial = static_cast<Render::MaterialAsset*>(loadedAsset.get());
+		this->CreateMesh();
+		this->m_mesh->SetMaterial(renderMaterial->GetMaterial());
+	};
+	m_assetSystem->LoadAsset("simple_material", onMaterialLoaded);
+
 	return true;
-}
-
-std::shared_ptr<Render::Material> AppSkeleton::CreateMaterial()
-{
-	std::string compileResult;
-	Render::ShaderBinary vertexShader, fragmentShader;
-	if (!vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "shaders/simple_vertex.txt", compileResult))
-	{
-		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
-		return false;
-	}
-
-	if (!fragmentShader.CompileFromFile(Render::ShaderType::FragmentShader, "shaders/simple_fragment.txt", compileResult))
-	{
-		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
-		return false;
-	}
-
-	auto shaderProgram = std::make_shared<Render::ShaderProgram>();
-	if (!shaderProgram->Create(vertexShader, fragmentShader, compileResult))
-	{
-		SDE_LOG("Failed to link shaders: \r\n\t%s", compileResult.c_str());
-		return false;
-	}
-
-	auto material = std::make_shared<Render::Material>();
-	material->SetShaderProgram(shaderProgram);
-	material->GlobalDefinitions().m_mvpUniformHandle = shaderProgram->GetUniformHandle("MVP");
-
-	return material;
 }
 
 bool AppSkeleton::CreateMesh()
@@ -115,11 +88,8 @@ bool AppSkeleton::CreateMesh()
 	}
 	meshBuilder.EndChunk();
 
-	m_mesh = std::make_shared<Render::Mesh>();
+	m_mesh = std::make_unique<Render::Mesh>();
 	meshBuilder.CreateMesh(*m_mesh);
-
-	auto material = CreateMaterial();
-	m_mesh->SetMaterial(material);
 
 	return true;
 }
@@ -138,7 +108,11 @@ bool AppSkeleton::Tick()
 	
 	auto& forwardPass = m_renderSystem->GetPass(m_forwardPassId);
 	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
-	forwardPass.AddInstance(m_mesh, glm::mat4());
+
+	if (m_mesh != nullptr)
+	{
+		forwardPass.AddInstance(m_mesh.get(), glm::mat4());
+	}
 
 	return !m_quit;
 }

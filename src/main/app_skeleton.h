@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/system.h"
-#include "render/render_pass.h"
 #include "sde/debug_camera_controller.h"
 #include <memory>
 
@@ -19,6 +18,7 @@ namespace Engine
 namespace SDE
 {
 	class RenderSystem;
+	class AssetSystem;
 }
 
 class AppSkeleton : public Core::ISystem
@@ -36,12 +36,12 @@ private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 
-	std::shared_ptr<Render::Material> CreateMaterial();
 	bool CreateMesh();
 
 	uint32_t m_forwardPassId;
 	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
-	std::shared_ptr<Render::Mesh> m_mesh;
-	Engine::InputSystem* m_inputSystem;
+	std::unique_ptr<Render::Mesh> m_mesh;
 	SDE::RenderSystem* m_renderSystem;
+	SDE::AssetSystem* m_assetSystem;
+	Engine::InputSystem* m_inputSystem;
 };

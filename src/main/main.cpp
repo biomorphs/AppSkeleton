@@ -1,6 +1,7 @@
 #include "engine/engine_startup.h"
 #include "engine/input_system.h"
 #include "core/system_registrar.h"
+#include "sde/asset_system.h"
 #include "sde/render_system.h"
 #include "app_skeleton.h"
 
@@ -11,6 +12,7 @@ public:
 	void RegisterSystems(Core::ISystemRegistrar& systemManager)
 	{
 		systemManager.RegisterSystem("Input", new Engine::InputSystem());
+		systemManager.RegisterSystem("Assets", new SDE::AssetSystem());
 		systemManager.RegisterSystem("App", new AppSkeleton());
 		systemManager.RegisterSystem("Render", new SDE::RenderSystem());
 	}
