@@ -6,8 +6,13 @@
 #include "render/shader_binary.h"
 #include "render/shader_program.h"
 #include "render/material.h"
+#include "render/material_asset.h"
+#include "render/shader_program_asset.h"
 #include "sde/debug_camera_controller.h"
 #include "sde/render_system.h"
+#include "core/asset_creator.h"
+#include "core/asset_serialiser.h"
+#include "core/asset_database.h"
 
 AppSkeleton::AppSkeleton()
 : m_quit(false)
@@ -27,6 +32,18 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 
 bool AppSkeleton::PostInit()
 {
+	Core::AssetDatabase m_assets;
+
+	Core::AssetCreator assetCreator;
+	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
+	assetCreator.RegisterFactory<Render::ShaderProgramAssetFactory>(Render::ShaderProgramAsset::c_assetType);
+
+	Core::AssetSerialiser assetLoader(m_assets, assetCreator);
+ 	if (!assetLoader.Load("assets", "simple_material"))
+	{
+		return false;
+	}
+
 	CreateMesh();
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_forwardPassId = m_renderSystem->CreatePass("Forward");
@@ -37,13 +54,13 @@ std::shared_ptr<Render::Material> AppSkeleton::CreateMaterial()
 {
 	std::string compileResult;
 	Render::ShaderBinary vertexShader, fragmentShader;
-	if (!vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "simple_vertex.txt", compileResult))
+	if (!vertexShader.CompileFromFile(Render::ShaderType::VertexShader, "shaders/simple_vertex.txt", compileResult))
 	{
 		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
 		return false;
 	}
 
-	if (!fragmentShader.CompileFromFile(Render::ShaderType::FragmentShader, "simple_fragment.txt", compileResult))
+	if (!fragmentShader.CompileFromFile(Render::ShaderType::FragmentShader, "shaders/simple_fragment.txt", compileResult))
 	{
 		SDE_LOG("Failed to compile shader:\r\n\t%s", compileResult.c_str());
 		return false;

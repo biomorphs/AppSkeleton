@@ -5,19 +5,6 @@
     <ClCompile Include="src\main\app_skeleton.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="data">
-      <UniqueIdentifier>{e8170a54-ca3e-40eb-9f41-24b586086250}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="data\simple_fragment.txt">
-      <Filter>data</Filter>
-    </Text>
-    <Text Include="data\simple_vertex.txt">
-      <Filter>data</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
   </ItemGroup>
 </Project>

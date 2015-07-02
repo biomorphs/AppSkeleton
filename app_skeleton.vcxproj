@@ -33,7 +33,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <IncludePath>$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm\glm;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\SDLEngine\external\rapidjson\include;$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm\glm;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='Win32'">
     <LibraryPath>$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86;$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
@@ -127,10 +127,6 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="data\simple_fragment.txt" />
-    <Text Include="data\simple_vertex.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SDLEngine\engine\core.vcxproj">
