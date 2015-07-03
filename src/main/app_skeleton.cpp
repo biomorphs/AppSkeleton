@@ -1,16 +1,13 @@
 #include "app_skeleton.h"
-#include "kernel/assert.h"
 #include "core/system_enumerator.h"
 #include "engine/input_system.h"
 #include "render/mesh_builder.h"
-#include "render/shader_binary.h"
-#include "render/shader_program.h"
-#include "render/material.h"
 #include "render/material_asset.h"
 #include "render/shader_program_asset.h"
 #include "sde/debug_camera_controller.h"
 #include "sde/render_system.h"
 #include "sde/asset_system.h"
+#include "sde/debug_render.h"
 
 AppSkeleton::AppSkeleton()
 : m_quit(false)
@@ -36,19 +33,18 @@ bool AppSkeleton::PostInit()
 	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
 	assetCreator.RegisterFactory<Render::ShaderProgramAssetFactory>(Render::ShaderProgramAsset::c_assetType);
 
-	// Set up camera controller and forward pass
+	// Set up camera controller and render passes
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_forwardPassId = m_renderSystem->CreatePass("Forward");
 
 	// load material, on completion we build the mesh
-	auto onMaterialLoaded = [this] (const std::string& asset, bool result)
-	{		
+	m_assetSystem->LoadAsset("simple_material", [this](const std::string& asset, bool result)
+	{
 		auto loadedAsset = this->m_assetSystem->GetAsset(asset);
 		auto renderMaterial = static_cast<Render::MaterialAsset*>(loadedAsset.get());
 		this->CreateMesh();
 		this->m_mesh->SetMaterial(renderMaterial->GetMaterial());
-	};
-	m_assetSystem->LoadAsset("simple_material", onMaterialLoaded);
+	});
 
 	return true;
 }
@@ -94,6 +90,25 @@ bool AppSkeleton::CreateMesh()
 	return true;
 }
 
+bool AppSkeleton::Tick()
+{
+	auto& forwardPass = m_renderSystem->GetPass(m_forwardPassId);
+
+	// apply camera controller to passes
+	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
+	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
+	m_debugCameraController->ApplyToCamera(m_renderSystem->DebugCamera());
+
+	// Rendering submission
+	if (m_mesh != nullptr)
+	{
+		forwardPass.AddInstance(m_mesh.get(), glm::mat4());
+	}
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f), 1.0f);
+
+	return !m_quit;
+}
+
 void AppSkeleton::OnEventRecieved(const Core::EngineEvent& e)
 {
 	if (e.m_type == Core::EngineEvent::QuitRequest)
@@ -102,22 +117,8 @@ void AppSkeleton::OnEventRecieved(const Core::EngineEvent& e)
 	}
 }
 
-bool AppSkeleton::Tick()
-{
-	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016 );
-	
-	auto& forwardPass = m_renderSystem->GetPass(m_forwardPassId);
-	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
-
-	if (m_mesh != nullptr)
-	{
-		forwardPass.AddInstance(m_mesh.get(), glm::mat4());
-	}
-
-	return !m_quit;
-}
-
 void AppSkeleton::Shutdown()
 {	
+	m_debugCameraController = nullptr;
 	m_mesh = nullptr;
 }

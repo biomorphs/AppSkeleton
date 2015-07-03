@@ -35,7 +35,6 @@ public:
 private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
-
 	bool CreateMesh();
 
 	uint32_t m_forwardPassId;
