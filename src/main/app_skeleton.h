@@ -36,6 +36,8 @@ private:
 	void OnEventRecieved(const Core::EngineEvent& e);
 	bool m_quit;
 	bool CreateMesh();
+	void InitialiseVoxelModel();
+	void DebugRenderVoxelModel();
 
 	uint32_t m_forwardPassId;
 	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
