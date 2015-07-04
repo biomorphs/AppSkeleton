@@ -100,8 +100,8 @@ void AppSkeleton::InitialiseVoxelModel()
 {
 	s_testModel.SetVoxelSize(glm::vec3(0.125f));
 
-	SphereFiller sphere;
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), ModelType::IteratorAccess::ReadWrite, sphere);
+	//SphereFiller sphere;
+	//s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), ModelType::IteratorAccess::ReadWrite, sphere);
 
 	OneFiller oneFiller;
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
@@ -113,8 +113,14 @@ void AppSkeleton::InitialiseVoxelModel()
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 4.0f), glm::vec3(15.0f, 8.0f, 5.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 4.0f), glm::vec3(14.0f, 6.5f, 5.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 0.5f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 0.0f, 12.0f), glm::vec3(3.0f, 8.0f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 12.0f), glm::vec3(15.0f, 8.0f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 12.0f), glm::vec3(14.0f, 6.5f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+
 	ZeroFiller zeroFill;
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(6.0f, 0.0f, 0.0f), glm::vec3(10.0f, 7.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, zeroFill);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(6.0f, 0.5f, 0.0f), glm::vec3(10.0f, 7.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, zeroFill);
 }
 
 void AppSkeleton::DebugRenderVoxelModel()
