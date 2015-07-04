@@ -10,7 +10,8 @@
 #include "sde/debug_render.h"
 
 #include "vox/model.h"
-#include "vox/quad_extractor.h"
+#include "vox/simple_quad_extractor.h"
+#include "vox/greedy_quad_extractor.h"
 
 struct VoxelAllocator
 {
@@ -58,7 +59,7 @@ void AppSkeleton::InitialiseVoxelModel()
 	{
 		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
 		{
-			const glm::vec3 spherePos(0.0f, 0.0f, 0.0f);
+			const glm::vec3 spherePos(8.0f,4.0f, 8.0f);
 			const float c_radius = 2.0f;
 
 			for (int z = 0;z < 2;++z)
@@ -79,61 +80,55 @@ void AppSkeleton::InitialiseVoxelModel()
 		}
 	};	
 
-	struct CubeFiller
+	struct OneFiller
 	{
 		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
 		{
-			const glm::vec3 spherePos(0.0f, 0.0f, 0.0f);
-			const float c_radius = 2.0f;
-
 			auto theClump = accessor.GetClump();
 			memset(theClump, 1, sizeof(ModelType::BlockType::ClumpType));
 		}
 	};
 
-	s_testModel.SetVoxelSize(glm::vec3(0.25f));
+	struct ZeroFiller
+	{
+		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+		{
+			auto theClump = accessor.GetClump();
+			memset(theClump, 0, sizeof(ModelType::BlockType::ClumpType));
+		}
+	};
 
-	SphereFiller filler;
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(-8.0f), glm::vec3(8.0f)), ModelType::IteratorAccess::ReadWrite, filler);
+	s_testModel.SetVoxelSize(glm::vec3(0.125f));
 
-	CubeFiller cubeFiller;
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(-8.0f, -4.0f, -8.0f), glm::vec3(8.0f, 4.0f, -7.5f)), ModelType::IteratorAccess::ReadWrite, cubeFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(-8.0f, -4.0f, 7.5f), glm::vec3(8.0f, 4.0f, 8.0f)), ModelType::IteratorAccess::ReadWrite, cubeFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(-8.0f, -4.0f, -8.0f), glm::vec3(-7.5f, 4.0f, 8.0f)), ModelType::IteratorAccess::ReadWrite, cubeFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(7.5f, -4.0f, -8.0f), glm::vec3(8.0f, 4.0f, 8.0f)), ModelType::IteratorAccess::ReadWrite, cubeFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(-8.0f, -4.0f, -8.0f), glm::vec3(8.0f, -3.5f, 8.0f)), ModelType::IteratorAccess::ReadWrite, cubeFiller);
+	SphereFiller sphere;
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f)), ModelType::IteratorAccess::ReadWrite, sphere);
+
+	OneFiller oneFiller;
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 15.5f), glm::vec3(16.0f, 8.0f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 8.0f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(15.5f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 0.0f, 2.0f), glm::vec3(3.0f, 8.0f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 2.0f), glm::vec3(15.0f, 8.0f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 2.0f), glm::vec3(14.0f, 6.5f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+
+	ZeroFiller zeroFill;
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(6.0f, 0.0f, 0.0f), glm::vec3(10.0f, 7.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, zeroFill);
 }
 
 void AppSkeleton::DebugRenderVoxelModel()
 {
-	const glm::vec4 c_zAxisColour(0.0f, 0.0f, 1.0f, 1.0f);
-	const glm::vec4 c_yAxisColour(0.0f, 1.0f, 0.0f, 1.0f);
-	const glm::vec4 c_xAxisColour(1.0f, 0.0f, 0.0f, 1.0f);
+	const glm::vec4 c_quadColour(0.5f, 0.5f, 1.0f, 1.0f);
 
-	Vox::QuadExtractor<ModelType> extractor(s_testModel);
-	extractor.ExtractQuads(Math::Box3(glm::vec3(-16.0f), glm::vec3(16.0f)));
-	for (auto q = extractor.BeginZAxis(); q != extractor.EndZAxis(); ++q)
+	Vox::GreedyQuadExtractor<ModelType> extractor(s_testModel);
+	extractor.ExtractQuads(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)));
+	for (auto q = extractor.Begin(); q != extractor.End(); ++q)
 	{
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], c_zAxisColour, c_zAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], c_zAxisColour, c_zAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], c_zAxisColour, c_zAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], c_zAxisColour, c_zAxisColour);
-	}
-
-	for (auto q = extractor.BeginYAxis(); q != extractor.EndYAxis(); ++q)
-	{
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], c_yAxisColour, c_yAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], c_yAxisColour, c_yAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], c_yAxisColour, c_yAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], c_yAxisColour, c_yAxisColour);
-	}
-
-	for (auto q = extractor.BeginXAxis(); q != extractor.EndXAxis(); ++q)
-	{
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], c_xAxisColour, c_xAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], c_xAxisColour, c_xAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], c_xAxisColour, c_xAxisColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], c_xAxisColour, c_xAxisColour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], c_quadColour, c_quadColour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], c_quadColour, c_quadColour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], c_quadColour, c_quadColour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], c_quadColour, c_quadColour);
 	}
 }
 
@@ -219,6 +214,20 @@ bool AppSkeleton::Tick()
 	}
 
 	DebugRenderVoxelModel();
+
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f, 0.0f, 0.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(8.0f, 0.0f, 0.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(16.0f, 0.0f, 0.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f, 8.0f, 0.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(8.0f, 8.0f, 0.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(16.0f, 8.0f, 0.0f));
+
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f, 0.0f, 16.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(8.0f, 0.0f, 16.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(16.0f, 0.0f, 16.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f, 8.0f, 16.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(8.0f, 8.0f, 16.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(16.0f, 8.0f, 16.0f));
 
 	return !m_quit;
 }
