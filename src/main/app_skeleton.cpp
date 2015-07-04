@@ -28,8 +28,56 @@ struct VoxelAllocator
 };
 
 typedef uint8_t VoxelType;
-typedef Vox::Model<VoxelType, 32, VoxelAllocator> ModelType;
+typedef Vox::Model<VoxelType, 128, VoxelAllocator> ModelType;
 static ModelType s_testModel;
+
+inline glm::vec3 VoxelPosition(glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter, int vx, int vy, int vz)
+{
+	return (clumpOrigin + voxelSize * glm::vec3(vx, vy, vz)) + voxelCenter;
+}
+
+struct SphereFiller
+{
+	void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	{
+		const glm::vec3 spherePos(8.0f, 4.0f, 8.0f);
+		const float c_radius = 2.0f;
+
+		for (int z = 0;z < 2;++z)
+		{
+			for (int y = 0;y < 2;++y)
+			{
+				for (int x = 0;x < 2;++x)
+				{
+					const glm::vec3 vPos = VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z);
+					if (glm::distance(vPos, spherePos) <= c_radius)
+					{
+						auto theClump = accessor.GetClump();
+						theClump->VoxelAt(x, y, z) = 1;
+					}
+				}
+			}
+		}
+	}
+};
+
+struct OneFiller
+{
+	void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	{
+		auto theClump = accessor.GetClump();
+		memset(theClump, 1, sizeof(ModelType::BlockType::ClumpType));
+	}
+};
+
+struct ZeroFiller
+{
+	void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	{
+		auto theClump = accessor.GetClump();
+		memset(theClump, 0, sizeof(ModelType::BlockType::ClumpType));
+	}
+};
 
 AppSkeleton::AppSkeleton()
 : m_quit(false)
@@ -48,56 +96,8 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	return true;
 }
 
-inline glm::vec3 VoxelPosition(glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter, int vx, int vy, int vz)
-{
-	return (clumpOrigin + voxelSize * glm::vec3(vx, vy, vz)) + voxelCenter;
-}
-
 void AppSkeleton::InitialiseVoxelModel()
 {
-	struct SphereFiller
-	{
-		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
-		{
-			const glm::vec3 spherePos(8.0f,4.0f, 8.0f);
-			const float c_radius = 2.0f;
-
-			for (int z = 0;z < 2;++z)
-			{
-				for (int y = 0;y < 2;++y)
-				{
-					for (int x = 0;x < 2;++x)
-					{
-						const glm::vec3 vPos = VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z);
-						if (glm::distance(vPos, spherePos) <= c_radius)
-						{
-							auto theClump = accessor.GetClump();
-							theClump->VoxelAt(x, y, z) = 1;
-						}
-					}
-				}
-			}
-		}
-	};	
-
-	struct OneFiller
-	{
-		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
-		{
-			auto theClump = accessor.GetClump();
-			memset(theClump, 1, sizeof(ModelType::BlockType::ClumpType));
-		}
-	};
-
-	struct ZeroFiller
-	{
-		void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
-		{
-			auto theClump = accessor.GetClump();
-			memset(theClump, 0, sizeof(ModelType::BlockType::ClumpType));
-		}
-	};
-
 	s_testModel.SetVoxelSize(glm::vec3(0.125f));
 
 	SphereFiller sphere;
@@ -109,9 +109,9 @@ void AppSkeleton::InitialiseVoxelModel()
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 8.0f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(15.5f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 0.0f, 2.0f), glm::vec3(3.0f, 8.0f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 2.0f), glm::vec3(15.0f, 8.0f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
-	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 2.0f), glm::vec3(14.0f, 6.5f, 3.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 0.0f, 4.0f), glm::vec3(3.0f, 8.0f, 5.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 4.0f), glm::vec3(15.0f, 8.0f, 5.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 4.0f), glm::vec3(14.0f, 6.5f, 5.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 
 	ZeroFiller zeroFill;
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(6.0f, 0.0f, 0.0f), glm::vec3(10.0f, 7.0f, 0.5f)), ModelType::IteratorAccess::ReadWrite, zeroFill);
@@ -159,35 +159,24 @@ bool AppSkeleton::PostInit()
 
 bool AppSkeleton::CreateMesh()
 {
+	Vox::GreedyQuadExtractor<ModelType> extractor(s_testModel);
+	extractor.ExtractQuads(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)));
+
 	Render::MeshBuilder meshBuilder;
 	uint32_t posStream = meshBuilder.AddVertexStream(3);
 	uint32_t colourStream = meshBuilder.AddVertexStream(3);
-	
+
 	meshBuilder.BeginChunk();
+	for (auto q = extractor.Begin(); q != extractor.End(); ++q)
 	{
 		meshBuilder.BeginTriangle();
-		{
-			meshBuilder.SetStreamData(posStream, 
-									  glm::vec3(-0.5f, -0.5f, 0.0f), 
-									  glm::vec3(0.5f, -0.5f, 0.0f), 
-									  glm::vec3(0.5f, 0.5f, 0.0f));
-			meshBuilder.SetStreamData(colourStream, 
-									  glm::vec3(1.0f, 0.0f, 0.0f), 
-									  glm::vec3(0.0f, 1.0f, 0.0f), 
-									  glm::vec3(0.0f, 0.0f, 1.0f));
-		}
+			meshBuilder.SetStreamData(posStream, q->m_vertices[0], q->m_vertices[1], q->m_vertices[2]);
+			meshBuilder.SetStreamData(colourStream, glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f));
 		meshBuilder.EndTriangle();
+
 		meshBuilder.BeginTriangle();
-		{
-			meshBuilder.SetStreamData(posStream,
-									  glm::vec3(-0.5f, -0.5f, 0.0f),
-									  glm::vec3(0.5f, 0.5f, 0.0f),
-									  glm::vec3(-0.5f, 0.5f, 0.0f));
-			meshBuilder.SetStreamData(colourStream,
-									  glm::vec3(1.0f, 0.0f, 0.0f),
-									  glm::vec3(0.0f, 0.0f, 1.0f),
-									  glm::vec3(0.0f, 1.0f, 0.0f));
-		}
+			meshBuilder.SetStreamData(posStream, q->m_vertices[0], q->m_vertices[2], q->m_vertices[3]);
+			meshBuilder.SetStreamData(colourStream, glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f));
 		meshBuilder.EndTriangle();
 	}
 	meshBuilder.EndChunk();
@@ -210,7 +199,7 @@ bool AppSkeleton::Tick()
 	// Rendering submission
 	if (m_mesh != nullptr)
 	{
-		//forwardPass.AddInstance(m_mesh.get(), glm::mat4());
+		forwardPass.AddInstance(m_mesh.get(), glm::mat4());
 	}
 
 	DebugRenderVoxelModel();
