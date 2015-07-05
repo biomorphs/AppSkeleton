@@ -3,8 +3,15 @@
   <ItemGroup>
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include="src\main\app_skeleton.cpp" />
+    <ClCompile Include="src\main\voxel_material.cpp" />
+    <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
+    <ClCompile Include="src\main\floor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
+    <ClInclude Include="src\main\voxel_material.h" />
+    <ClInclude Include="src\main\voxel_mesh_builder.h" />
+    <ClInclude Include="src\main\voxel_definitions.h" />
+    <ClInclude Include="src\main\floor.h" />
   </ItemGroup>
 </Project>

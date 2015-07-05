@@ -1,0 +1,12 @@
+#version 330 core
+in vec3 colourOut;
+in vec3 normalOut;
+out vec4 colour;
+ 
+void main(){
+	const vec3 c_lightPosition = vec3(0.4,0.6,0.4);
+	const vec3 c_lightColour = vec3(1.0,1.0,1.0);
+	const vec3 c_ambient = vec3(0.2,0.2,0.2);
+	float nDotL = max( 0.0, dot( normalOut, c_lightPosition ));
+    colour = vec4((c_ambient * colourOut) + (colourOut * c_lightColour * nDotL),1.0);
+}

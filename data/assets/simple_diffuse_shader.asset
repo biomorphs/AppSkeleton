@@ -1,0 +1,14 @@
+{
+	"asset" : {
+		"id" : "simple_diffuse_shader",
+		"typeid" : "RSHP",
+		"data" : {
+			"vertexshader" : "shaders/simple_diffuse_vertex.txt",
+			"fragmentshader" : "shaders/simple_diffuse_fragment.txt",
+			"globaluniforms" : 
+			{
+				"modelviewproj" : "MVP"
+			}
+		}
+	}
+}
