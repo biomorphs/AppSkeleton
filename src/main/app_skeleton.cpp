@@ -70,6 +70,15 @@ struct OneFiller
 	}
 };
 
+struct TwoFiller
+{
+	void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	{
+		auto theClump = accessor.GetClump();
+		memset(theClump, 2, sizeof(ModelType::BlockType::ClumpType));
+	}
+};
+
 struct ZeroFiller
 {
 	void operator()(ModelType::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
@@ -115,6 +124,9 @@ void AppSkeleton::InitialiseVoxelModel()
 
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 0.5f, 16.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 
+	TwoFiller twofill;
+	s_testModel.IterateForArea(Math::Box3(glm::vec3(6.0f, 0.0f, 6.0f), glm::vec3(12.0f, 0.5f, 12.0f)), ModelType::IteratorAccess::ReadWrite, twofill);
+
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 0.0f, 12.0f), glm::vec3(3.0f, 8.0f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(14.0f, 0.0f, 12.0f), glm::vec3(15.0f, 8.0f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
 	s_testModel.IterateForArea(Math::Box3(glm::vec3(2.0f, 6.0f, 12.0f), glm::vec3(14.0f, 6.5f, 13.0f)), ModelType::IteratorAccess::ReadWrite, oneFiller);
@@ -126,15 +138,17 @@ void AppSkeleton::InitialiseVoxelModel()
 void AppSkeleton::DebugRenderVoxelModel()
 {
 	const glm::vec4 c_quadColour(0.5f, 0.5f, 1.0f, 1.0f);
+	const glm::vec4 c_quadTwoColour(1.0f, 0.5f, 1.0f, 1.0f);
 
 	Vox::GreedyQuadExtractor<ModelType> extractor(s_testModel);
 	extractor.ExtractQuads(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)));
 	for (auto q = extractor.Begin(); q != extractor.End(); ++q)
 	{
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], c_quadColour, c_quadColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], c_quadColour, c_quadColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], c_quadColour, c_quadColour);
-		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], c_quadColour, c_quadColour);
+		const glm::vec4& colour = q->m_sourceData == 1 ? c_quadColour : c_quadTwoColour;
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[0], q->m_vertices[1], colour, colour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[1], q->m_vertices[2], colour, colour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[2], q->m_vertices[3], colour, colour);
+		m_renderSystem->GetDebugRender().AddLine(q->m_vertices[3], q->m_vertices[0], colour, colour);
 	}
 }
 
@@ -165,6 +179,9 @@ bool AppSkeleton::PostInit()
 
 bool AppSkeleton::CreateMesh()
 {
+	const glm::vec3 c_quadColour(0.3f, 0.3f, 0.3f);
+	const glm::vec3 c_quadTwoColour(0.6f, 0.3f, 0.3f);
+
 	Vox::GreedyQuadExtractor<ModelType> extractor(s_testModel);
 	extractor.ExtractQuads(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f)));
 
@@ -175,14 +192,16 @@ bool AppSkeleton::CreateMesh()
 	meshBuilder.BeginChunk();
 	for (auto q = extractor.Begin(); q != extractor.End(); ++q)
 	{
+		const glm::vec3& colour = q->m_sourceData == 1 ? c_quadColour : c_quadTwoColour;
+
 		meshBuilder.BeginTriangle();
 			meshBuilder.SetStreamData(posStream, q->m_vertices[0], q->m_vertices[1], q->m_vertices[2]);
-			meshBuilder.SetStreamData(colourStream, glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f));
+			meshBuilder.SetStreamData(colourStream, colour, colour, colour);
 		meshBuilder.EndTriangle();
 
 		meshBuilder.BeginTriangle();
 			meshBuilder.SetStreamData(posStream, q->m_vertices[0], q->m_vertices[2], q->m_vertices[3]);
-			meshBuilder.SetStreamData(colourStream, glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.3f, 0.3f, 0.3f));
+			meshBuilder.SetStreamData(colourStream, colour, colour, colour);
 		meshBuilder.EndTriangle();
 	}
 	meshBuilder.EndChunk();
