@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-namespace Core
+namespace Assets
 {
 	class Asset;
 }
@@ -32,8 +32,8 @@ public:
 	VoxelMaterialSet();
 	~VoxelMaterialSet();
 
-	void SetRenderMaterialAsset(std::shared_ptr<Core::Asset>& asset);
-	std::shared_ptr<Core::Asset> GetRenderMaterialAsset();
+	void SetRenderMaterialAsset(std::shared_ptr<Assets::Asset>& asset);
+	std::shared_ptr<Assets::Asset> GetRenderMaterialAsset();
 
 	void SetMaterial(uint32_t materialID, const VoxelMaterial& newMaterial);
 	const VoxelMaterial& GetMaterial(uint32_t materialID) const;
@@ -41,5 +41,5 @@ public:
 private:
 	static const uint32_t c_maxMaterials = 256;
 	std::vector<VoxelMaterial> m_materials;
-	std::shared_ptr<Core::Asset> m_renderMaterial;
+	std::shared_ptr<Assets::Asset> m_renderMaterial;
 };

@@ -136,11 +136,17 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     <ClInclude Include="src\main\voxel_mesh_builder.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SDLEngine\engine\asset.vcxproj">
+      <Project>{28f734d4-eac2-48ba-816a-a71bd10866c6}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\SDLEngine\engine\core.vcxproj">
       <Project>{d4656b9a-cf28-4719-b307-ba4fd577293b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\SDLEngine\engine\engine.vcxproj">
       <Project>{c9be37af-362d-43a6-9151-72ee5390eae4}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\SDLEngine\engine\input.vcxproj">
+      <Project>{47c8ee95-de35-4b19-be63-f9959414eaeb}</Project>
     </ProjectReference>
     <ProjectReference Include="..\SDLEngine\engine\kernel.vcxproj">
       <Project>{03ffcecd-38f1-48c3-be2b-5cfc42c34a8f}</Project>

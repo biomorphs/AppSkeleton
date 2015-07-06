@@ -6,7 +6,7 @@
 #include "sde/debug_camera_controller.h"
 #include <memory>
 
-namespace Engine
+namespace Input
 {
 	class InputSystem;
 }
@@ -29,14 +29,12 @@ public:
 	void Shutdown();
 
 private:
-	void OnEventRecieved(const Core::EngineEvent& e);
-	void InitialiseFloor(std::shared_ptr<Core::Asset>& materialAsset);
+	void InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset);
 
 	std::unique_ptr<Floor> m_testFloor;
 	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;
 	SDE::RenderSystem* m_renderSystem;
 	SDE::AssetSystem* m_assetSystem;
-	Engine::InputSystem* m_inputSystem;
+	Input::InputSystem* m_inputSystem;
 	uint32_t m_forwardPassId;
-	bool m_quit;
 };

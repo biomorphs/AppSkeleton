@@ -10,12 +10,12 @@ VoxelMaterialSet::~VoxelMaterialSet()
 {
 }
 
-std::shared_ptr<Core::Asset> VoxelMaterialSet::GetRenderMaterialAsset()
+std::shared_ptr<Assets::Asset> VoxelMaterialSet::GetRenderMaterialAsset()
 {
 	return m_renderMaterial;
 }
 
-void VoxelMaterialSet::SetRenderMaterialAsset(std::shared_ptr<Core::Asset>& asset)
+void VoxelMaterialSet::SetRenderMaterialAsset(std::shared_ptr<Assets::Asset>& asset)
 {
 	m_renderMaterial = asset;
 }

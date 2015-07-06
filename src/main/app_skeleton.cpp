@@ -1,7 +1,7 @@
 #include "app_skeleton.h"
 #include "core/system_enumerator.h"
 #include "core/timer.h"
-#include "engine/input_system.h"
+#include "input/input_system.h"
 #include "render/material_asset.h"
 #include "render/shader_program_asset.h"
 #include "sde/debug_camera_controller.h"
@@ -167,17 +167,14 @@ struct TestRoomBuilder
 						continue;
 					}
 
-					if(!Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(2.5f,0.0f,2.5f)))
-						if(!Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.5f, 0.0f, 2.5f)))
-							if(!Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(2.5f, 0.0f, 13.5f)))
-								Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.5f, 0.0f, 13.5f));
+					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(8.0f, 0.0f, 8.0f));
 				}
 			}
 		}
 	}
 };
 
-void AppSkeleton::InitialiseFloor(std::shared_ptr<Core::Asset>& materialAsset)
+void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 {
 	// Setup material
 	VoxelMaterialSet floorMaterials;
@@ -211,7 +208,6 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Core::Asset>& materialAsset)
 }
 
 AppSkeleton::AppSkeleton()
-: m_quit(false)
 {
 }
 
@@ -221,7 +217,7 @@ AppSkeleton::~AppSkeleton()
 
 bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
-	m_inputSystem = (Engine::InputSystem*)systemEnumerator.GetSystem("Input");
+	m_inputSystem = (Input::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
 	
@@ -302,15 +298,7 @@ bool AppSkeleton::Tick()
 	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f));
 	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(4.0f));
 
-	return !m_quit;
-}
-
-void AppSkeleton::OnEventRecieved(const Core::EngineEvent& e)
-{
-	if (e.m_type == Core::EngineEvent::QuitRequest)
-	{
-		m_quit = true;
-	}
+	return true;
 }
 
 void AppSkeleton::Shutdown()
