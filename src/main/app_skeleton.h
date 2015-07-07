@@ -15,6 +15,7 @@ namespace SDE
 {
 	class RenderSystem;
 	class AssetSystem;
+	class JobSystem;
 }
 
 class AppSkeleton : public Core::ISystem
@@ -36,5 +37,6 @@ private:
 	SDE::RenderSystem* m_renderSystem;
 	SDE::AssetSystem* m_assetSystem;
 	Input::InputSystem* m_inputSystem;
+	SDE::JobSystem* m_jobSystem;
 	uint32_t m_forwardPassId;
 };

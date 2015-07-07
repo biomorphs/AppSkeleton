@@ -8,6 +8,7 @@
 #include "sde/render_system.h"
 #include "sde/asset_system.h"
 #include "sde/debug_render.h"
+#include "sde/job_system.h"
 #include <algorithm>
 
 enum class Materials : uint8_t
@@ -174,6 +175,22 @@ struct TestRoomBuilder
 	}
 };
 
+void AddPopJob(SDE::JobSystem* js, Floor* f, const Math::Box3& target)
+{
+	auto jobFn = [f, target]()
+	{
+		SDE_LOG("Running %f, %f, %f", target.Min().x, target.Min().y, target.Min().z);
+		double elapsed = 0.0f;
+		{
+			Core::ScopedTimer time(elapsed);
+			TestRoomBuilder valFiller;
+			f->ModifyData(target, valFiller);
+		}
+		SDE_LOG("%f, %f, %f - %f, %f", target.Min().x, target.Min().y, target.Min().z, (float)elapsed, (float)elapsed * 1000.0f);
+	};
+	js->PushJob(jobFn);
+}
+
 void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 {
 	// Setup material
@@ -192,19 +209,24 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	floorMaterials.SetRenderMaterialAsset(materialAsset);
 
 	m_testFloor = std::make_unique<Floor>();
-	m_testFloor->Create(floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 32);
+	m_testFloor->Create(floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
-	double elapsed;
-	TestRoomBuilder valFiller;
+	const int32_t c_jobsPerAxis = 16;
+	const Math::Box3 c_populationBounds(glm::vec3(0.0f), glm::vec3(128.0f));
+	glm::vec3 areaPerJob = c_populationBounds.Size();
+	areaPerJob.x = areaPerJob.x / (float)c_jobsPerAxis;
+	areaPerJob.z = areaPerJob.z / (float)c_jobsPerAxis;
+	glm::vec3 startPos = c_populationBounds.Min();
+	for (int32_t x = 0; x < c_jobsPerAxis; ++x)
 	{
-		Core::ScopedTimer time(elapsed);
-#ifdef SDE_DEBUG
-		m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 16.0f)), valFiller);
-#else
-		m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller);
-#endif
+		for (int32_t y = 0; y < c_jobsPerAxis; ++y)
+		{
+			AddPopJob(m_jobSystem, m_testFloor.get(), Math::Box3(startPos, startPos + areaPerJob));
+			startPos.x = x * areaPerJob.x;
+			startPos.z = y * areaPerJob.z;
+		}
 	}
-	SDE_LOG("%f, %f", (float)elapsed, (float)elapsed * 1000.0f);
+	
 }
 
 AppSkeleton::AppSkeleton()
@@ -220,6 +242,7 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_inputSystem = (Input::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
+	m_jobSystem = (SDE::JobSystem*)systemEnumerator.GetSystem("Jobs");
 	
 	return true;
 }
@@ -258,17 +281,17 @@ bool AppSkeleton::Tick()
 {
 	if (m_testFloor != nullptr)
 	{
-#ifndef SDE_DEBUG
-		SphereFiller sphere;
-		sphere.m_value = 0;
-		const int c_numHoles = 8;
-		for (int i = 0;i < c_numHoles;++i)
-		{
-			sphere.m_radius = RandFloat(1.5f);
-			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
-			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
-		}
-#endif
+//#ifndef SDE_DEBUG
+//		SphereFiller sphere;
+//		sphere.m_value = 0;
+//		const int c_numHoles = 8;
+//		for (int i = 0;i < c_numHoles;++i)
+//		{
+//			sphere.m_radius = RandFloat(1.5f);
+//			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
+//			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
+//		}
+//#endif
 		m_testFloor->RebuildDirtyMeshes();
 	}
 
