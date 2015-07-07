@@ -168,7 +168,7 @@ struct TestRoomBuilder
 						continue;
 					}
 
-					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(8.0f, 0.0f, 8.0f));
+					//Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(8.0f, 0.0f, 8.0f));
 				}
 			}
 		}
@@ -252,19 +252,15 @@ bool AppSkeleton::Tick()
 {
 	if (m_testFloor != nullptr)
 	{
-		static bool s_go = false;
 #ifndef SDE_DEBUG
-		if (s_go)
+		SphereFiller sphere;
+		sphere.m_value = 0;
+		const int c_numHoles = 4;
+		for (int i = 0;i < c_numHoles;++i)
 		{
-			SphereFiller sphere;
-			sphere.m_value = 0;
-			const int c_numHoles = 4;
-			for (int i = 0;i < c_numHoles;++i)
-			{
-				sphere.m_radius = RandFloat(1.5f);
-				sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
-				m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
-			}
+			sphere.m_radius = RandFloat(1.5f);
+			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
+			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
 		}
 #endif
 		m_testFloor->RebuildDirtyMeshes();

@@ -7,6 +7,8 @@
 #include "voxel_mesh_builder.h"
 #include "voxel_material.h"
 
+static const glm::vec3 c_floorTotalSize(128.0f);
+
 Floor::Floor()
 	: m_sectionsPerSide(0)
 {
@@ -43,6 +45,10 @@ void Floor::Create(VoxelMaterialSet& materials, const glm::vec3& floorSize, int3
 			theSection.m_renderMesh.SetMaterial(mat->GetMaterial());
 		}
 	}
+
+	// We get away with being lockless by ensuring the voxel model data *structure*
+	// does not change during async calls (i.e. no new blocks should be allocated)
+	m_voxelData.PreallocateMemory(m_totalBounds);
 }
 
 void Floor::Destroy()
@@ -58,6 +64,7 @@ bool Floor::RayIntersectsRoom(const glm::vec3& rayStart, const glm::vec3& rayEnd
 
 void Floor::RebuildDirtyMeshes()
 {
+	uint32_t count = 0;
 	for (int32_t z = 0; z < m_sectionsPerSide; ++z)
 	{
 		for (int32_t x = 0; x < m_sectionsPerSide; ++x)
@@ -66,8 +73,13 @@ void Floor::RebuildDirtyMeshes()
 			{
 				RemeshSection(x, z);
 				m_dirtyMeshes[x + (z*m_sectionsPerSide)] = false;
+				count++;
 			}
 		}
+	}
+	if (count > 0)
+	{
+		SDE_LOG("Remeshed %d meshes", count);
 	}
 }
 
@@ -80,6 +92,27 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	Math::Box3 sectionBounds(sectionBottomCorner, sectionBottomCorner + m_sectionSize);
 
 	meshBuilder.CreateMesh(m_voxelData, m_materials, sectionBounds, m_sections[x + (z * m_sectionsPerSide)].m_renderMesh);
+}
+
+void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator)
+{
+	auto updateJob = [this, updateBounds, iterator, x, z]
+	{
+		if (!m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.CAS(0,1))
+		{
+			SDE_LOG("Job in progress, skipping");
+			SubmitUpdateJob(updateBounds, x, z, iterator);
+		}
+		else
+		{
+			m_voxelData.IterateForArea(updateBounds, VoxelModel::IteratorAccess::ReadWrite, iterator);
+
+			m_dirtyMeshes[x + (z * m_sectionsPerSide)] = true;
+
+			m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.Add(-1);
+		}
+	};
+	m_jobSystem->PushJob(updateJob);
 }
 
 void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier)
@@ -104,17 +137,9 @@ void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modif
 		{
 			// clamp modification bounds to the section
 			Math::Box3 sectionBounds = m_sections[x + (z * m_sectionsPerSide)].m_bounds;
-			auto updateJob = [this, sectionBounds, modifier, x, z]
-			{
-				// todo: if there are any jobs in progress for our data, we can't do anything
-				m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.Add(1);
-
-				m_voxelData.IterateForArea(sectionBounds, VoxelModel::IteratorAccess::ReadWrite, modifier);
-				m_dirtyMeshes[x + (z * m_sectionsPerSide)] = true;
-
-				m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.Add(-1);
-			};
-			m_jobSystem->PushJob(updateJob);
+			sectionBounds.Min() = glm::max(sectionBounds.Min(), minEditBounds);
+			sectionBounds.Max() = glm::min(sectionBounds.Max(), maxEditBounds);
+			SubmitUpdateJob(sectionBounds, x, z, modifier);
 		}
 	}
 }

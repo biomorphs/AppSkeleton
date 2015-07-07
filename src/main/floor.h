@@ -36,6 +36,7 @@ public:
 
 private:
 	void RemeshSection(int32_t x, int32_t z);
+	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator);
 
 	struct SectionDesc
 	{
