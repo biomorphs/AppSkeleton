@@ -175,22 +175,6 @@ struct TestRoomBuilder
 	}
 };
 
-void AddPopJob(SDE::JobSystem* js, Floor* f, const Math::Box3& target)
-{
-	auto jobFn = [f, target]()
-	{
-		SDE_LOG("Running %f, %f, %f", target.Min().x, target.Min().y, target.Min().z);
-		double elapsed = 0.0f;
-		{
-			Core::ScopedTimer time(elapsed);
-			TestRoomBuilder valFiller;
-			f->ModifyData(target, valFiller);
-		}
-		SDE_LOG("%f, %f, %f - %f, %f", target.Min().x, target.Min().y, target.Min().z, (float)elapsed, (float)elapsed * 1000.0f);
-	};
-	js->PushJob(jobFn);
-}
-
 void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 {
 	// Setup material
@@ -210,23 +194,10 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 
 	m_testFloor = std::make_unique<Floor>();
 	m_testFloor->Create(floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
+	m_testFloor->SetJobSystem(m_jobSystem);
 
-	const int32_t c_jobsPerAxis = 16;
-	const Math::Box3 c_populationBounds(glm::vec3(0.0f), glm::vec3(128.0f));
-	glm::vec3 areaPerJob = c_populationBounds.Size();
-	areaPerJob.x = areaPerJob.x / (float)c_jobsPerAxis;
-	areaPerJob.z = areaPerJob.z / (float)c_jobsPerAxis;
-	glm::vec3 startPos = c_populationBounds.Min();
-	for (int32_t x = 0; x < c_jobsPerAxis; ++x)
-	{
-		for (int32_t y = 0; y < c_jobsPerAxis; ++y)
-		{
-			AddPopJob(m_jobSystem, m_testFloor.get(), Math::Box3(startPos, startPos + areaPerJob));
-			startPos.x = x * areaPerJob.x;
-			startPos.z = y * areaPerJob.z;
-		}
-	}
-	
+	TestRoomBuilder valFiller;
+	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f,8.0f,128.0f)), valFiller);
 }
 
 AppSkeleton::AppSkeleton()
@@ -281,17 +252,21 @@ bool AppSkeleton::Tick()
 {
 	if (m_testFloor != nullptr)
 	{
-//#ifndef SDE_DEBUG
-//		SphereFiller sphere;
-//		sphere.m_value = 0;
-//		const int c_numHoles = 8;
-//		for (int i = 0;i < c_numHoles;++i)
-//		{
-//			sphere.m_radius = RandFloat(1.5f);
-//			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
-//			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
-//		}
-//#endif
+		static bool s_go = false;
+#ifndef SDE_DEBUG
+		if (s_go)
+		{
+			SphereFiller sphere;
+			sphere.m_value = 0;
+			const int c_numHoles = 4;
+			for (int i = 0;i < c_numHoles;++i)
+			{
+				sphere.m_radius = RandFloat(1.5f);
+				sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
+				m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
+			}
+		}
+#endif
 		m_testFloor->RebuildDirtyMeshes();
 	}
 
