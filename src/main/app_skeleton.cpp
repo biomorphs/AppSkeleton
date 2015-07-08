@@ -9,6 +9,7 @@
 #include "sde/asset_system.h"
 #include "sde/debug_render.h"
 #include "sde/job_system.h"
+#include "math/dda.h"
 #include <algorithm>
 
 enum class Materials : uint8_t
@@ -240,10 +241,47 @@ bool AppSkeleton::PostInit()
 
 #define RandFloat(max)	max * ((float)rand() / (float)RAND_MAX)
 
-#pragma optimize("", off)
+struct DDAIntersectTest
+{
+	SDE::RenderSystem* m_renderSystem;
+	glm::vec3 m_voxelSize;
+
+	DDAIntersectTest(SDE::RenderSystem* rsys)
+		: m_renderSystem(rsys)
+	{
+	}
+
+	bool OnDDAIntersection(const glm::ivec3& p)
+	{
+		if (p.y == 0)
+		{
+			const glm::vec3 voxelPos = m_voxelSize * glm::vec3(p);
+			const glm::vec3 voxelCenter = voxelPos + (m_voxelSize * 0.5f);
+			m_renderSystem->GetDebugRender().AddBox(voxelCenter, m_voxelSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+		}
+		return false;
+	}
+
+	bool Run(const glm::vec3& rs, const glm::vec3& re, const glm::vec3& vs)
+	{
+		m_voxelSize = vs;
+		m_renderSystem->GetDebugRender().AddLine(rs, re, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		Math::DDAIntersect(rs, re, vs, *this);
+		return true;
+	}
+};
+
 bool AppSkeleton::Tick()
 {
 	static bool s_addSphere = 1;
+
+	glm::vec3 ddaRayStart = m_renderSystem->DebugCamera().Position();
+	glm::vec3 ddaRayDir = (m_renderSystem->DebugCamera().Target() - m_renderSystem->DebugCamera().Position());
+	glm::vec3 ddaRayEnd = ddaRayStart + (glm::normalize(ddaRayDir) * 128.0f);
+	static glm::vec3 ddaVoxSize(8.0f);
+
+	DDAIntersectTest dda(m_renderSystem);
+	dda.Run(ddaRayStart, ddaRayEnd, ddaVoxSize);
 
 	if (m_testFloor != nullptr)
 	{
@@ -283,7 +321,6 @@ bool AppSkeleton::Tick()
 
 	return true;
 }
-#pragma optimize("", on)
 
 void AppSkeleton::Shutdown()
 {	

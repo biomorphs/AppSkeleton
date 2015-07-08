@@ -116,6 +116,21 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	}
 }
 
+void Floor::FireRay(const glm::vec3& rayStart, const glm::vec3& rayEnd)
+{
+	float rayHitResult;
+	if (!Math::RayIntersectsAAB(rayStart, rayEnd, m_totalBounds, rayHitResult))
+	{
+		return;
+	}
+
+	if (rayHitResult >= 0.0f)
+	{
+		// Find the first section that the ray hits
+
+	}
+}
+
 void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator, const char* dbgName)
 {
 	auto updateJob = [this, updateBounds, iterator, x, z, dbgName]
