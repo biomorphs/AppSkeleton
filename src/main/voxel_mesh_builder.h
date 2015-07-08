@@ -5,7 +5,7 @@
 
 namespace Render
 {
-	class Mesh;
+	class MeshBuilder;
 }
 
 class VoxelMaterialSet;
@@ -13,5 +13,6 @@ class VoxelMaterialSet;
 class VoxelMeshBuilder
 {
 public:
-	void CreateMesh(const VoxelModel& sourceModel, const VoxelMaterialSet& materials, const Math::Box3& modelBounds, Render::Mesh& targetMesh);
+	// Populates a MeshBuilder with all the data required to push to the gpu
+	void BuildMeshData(const VoxelModel& sourceModel, const VoxelMaterialSet& materials, const Math::Box3& modelBounds, Render::MeshBuilder& targetMesh);
 };

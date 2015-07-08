@@ -2,6 +2,7 @@
 #include "sde/job_system.h"
 #include "render/mesh.h"
 #include "render/material_asset.h"
+#include "render/mesh_builder.h"
 #include "render/render_pass.h"
 #include "math/intersections.h"
 #include "voxel_mesh_builder.h"
@@ -19,16 +20,22 @@ Floor::~Floor()
 	Destroy();
 }
 
-void Floor::Create(VoxelMaterialSet& materials, const glm::vec3& floorSize, int32_t sectionDimensions)
+Floor::SectionDesc& Floor::GetSection(int32_t x, int32_t z)
 {
+	return m_sections[x + (z * m_sectionsPerSide)];
+}
+
+void Floor::Create(SDE::JobSystem* jobSystem, VoxelMaterialSet& materials, const glm::vec3& floorSize, int32_t sectionDimensions)
+{
+	SDE_ASSERT(jobSystem != nullptr);
 	m_totalBounds = Math::Box3(glm::vec3(0.0f), floorSize);
 	m_sectionSize = m_totalBounds.Size() / (float)sectionDimensions;
 	m_sectionSize.y = floorSize.y;
 	m_sectionsPerSide = sectionDimensions;
 	m_materials = materials;
 	m_sections.resize(sectionDimensions * sectionDimensions);
-	m_dirtyMeshes.resize(sectionDimensions * sectionDimensions);
 	m_voxelData.SetVoxelSize(glm::vec3(0.125f));	// All floors have constant voxel density of 8/meter
+	m_jobSystem = jobSystem;
 
 	// setup the mesh materials
 	auto renderAsset = materials.GetRenderMaterialAsset();
@@ -39,7 +46,7 @@ void Floor::Create(VoxelMaterialSet& materials, const glm::vec3& floorSize, int3
 	{
 		for (int32_t x = 0; x < sectionDimensions; ++x)
 		{
-			auto& theSection = m_sections[x + (z * sectionDimensions)];
+			auto& theSection = GetSection(x, z);
 			const glm::vec3 boundsMin(x * m_sectionSize.x, 0.0f, z * m_sectionSize.z);
 			theSection.m_bounds = Math::Box3(boundsMin, boundsMin + m_sectionSize);
 			theSection.m_renderMesh.SetMaterial(mat->GetMaterial());
@@ -57,29 +64,36 @@ void Floor::Destroy()
 	m_voxelData = VoxelModel();
 }
 
-bool Floor::RayIntersectsRoom(const glm::vec3& rayStart, const glm::vec3& rayEnd, float& tNear)
-{
-	return Math::RayIntersectsAAB(rayStart, rayEnd, m_totalBounds, tNear);
-}
-
 void Floor::RebuildDirtyMeshes()
 {
-	uint32_t count = 0;
-	for (int32_t z = 0; z < m_sectionsPerSide; ++z)
+	// we move the entire result data out, so we keep the lock for as little time
+	// as possible
+	std::unordered_map<int32_t, Render::MeshBuilder> buildResults;
 	{
-		for (int32_t x = 0; x < m_sectionsPerSide; ++x)
-		{
-			if (m_dirtyMeshes[x + (z*m_sectionsPerSide)])
-			{
-				RemeshSection(x, z);
-				m_dirtyMeshes[x + (z*m_sectionsPerSide)] = false;
-				count++;
-			}
-		}
+		Kernel::ScopedMutex lock(m_updatedMeshesLock);
+		buildResults = std::move(m_updatedMeshes);
 	}
-	if (count > 0)
+
+	// now we're safe to remesh the results
+	for (auto& it : buildResults)
 	{
-		SDE_LOG("Remeshed %d meshes", count);
+		// Rebuild the section index
+		int32_t sectionX = it.first % m_sectionsPerSide;
+		int32_t sectionY = (it.first - sectionX) / m_sectionsPerSide;
+
+		auto& section = GetSection(sectionX, sectionY);
+
+		// Update the section render mesh
+		it.second.CreateMesh(section.m_renderMesh);
+	}
+}
+
+void Floor::AddSectionMeshResult(int32_t x, int32_t z, Render::MeshBuilder& result)
+{
+	int32_t sectionResultIndex = x + (z * m_sectionsPerSide);
+	{
+		Kernel::ScopedMutex lock(m_updatedMeshesLock);
+		m_updatedMeshes[sectionResultIndex] = std::move(result);
 	}
 }
 
@@ -87,31 +101,41 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 {
 	SDE_ASSERT(x >= 0 && x < m_sectionsPerSide);
 	SDE_ASSERT(z >= 0 && z < m_sectionsPerSide);
-	VoxelMeshBuilder meshBuilder;
-	glm::vec3 sectionBottomCorner = m_sectionSize * glm::vec3(x, 0, z);
-	Math::Box3 sectionBounds(sectionBottomCorner, sectionBottomCorner + m_sectionSize);
 
-	meshBuilder.CreateMesh(m_voxelData, m_materials, sectionBounds, m_sections[x + (z * m_sectionsPerSide)].m_renderMesh);
+	// This assumes nobody else is touching this section, be careful!
+	auto& thisSection = GetSection(x, z);
+	
+	// We basically do everything but actually update the gpu data (it must happen in the main thread)
+	Render::MeshBuilder meshBuilder;
+	VoxelMeshBuilder voxelMeshBuilder;
+	voxelMeshBuilder.BuildMeshData(m_voxelData, m_materials, thisSection.m_bounds, meshBuilder);
+	AddSectionMeshResult(x, z, meshBuilder);
 }
 
 void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator)
 {
 	auto updateJob = [this, updateBounds, iterator, x, z]
 	{
-		if (!m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.CAS(0,1))
+		auto& thisSection = GetSection(x, z);
+		
+		if (!thisSection.m_updateJobCounter.CAS(0,1))	// If there are update jobs currently running, we wait
 		{
-			SDE_LOG("Job in progress, skipping");
 			SubmitUpdateJob(updateBounds, x, z, iterator);
 		}
 		else
 		{
 			m_voxelData.IterateForArea(updateBounds, VoxelModel::IteratorAccess::ReadWrite, iterator);
 
-			m_dirtyMeshes[x + (z * m_sectionsPerSide)] = true;
+			if (thisSection.m_updatesPending.Add(-1) == 1)	// If pending updates = 1, that's us, so we will now remesh
+			{
+				RemeshSection(x, z);
+			}
 
-			m_sections[x + (z * m_sectionsPerSide)].m_jobCounter.Add(-1);
+			thisSection.m_updateJobCounter.Add(-1);	// we're done, someone else can update data now
 		}
 	};
+
+	GetSection(x, z).m_updatesPending.Add(1);		// Keep track of how many updates are queued
 	m_jobSystem->PushJob(updateJob);
 }
 
@@ -136,7 +160,7 @@ void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modif
 		for (int32_t x = sectionMin.x; x < sectionMax.x; ++x)
 		{
 			// clamp modification bounds to the section
-			Math::Box3 sectionBounds = m_sections[x + (z * m_sectionsPerSide)].m_bounds;
+			Math::Box3 sectionBounds = GetSection(x,z).m_bounds;
 			sectionBounds.Min() = glm::max(sectionBounds.Min(), minEditBounds);
 			sectionBounds.Max() = glm::min(sectionBounds.Max(), maxEditBounds);
 			SubmitUpdateJob(sectionBounds, x, z, modifier);
@@ -150,7 +174,7 @@ void Floor::Render(Render::RenderPass& targetPass)
 	{
 		for (int32_t x = 0; x < m_sectionsPerSide; ++x)
 		{
-			auto& theMesh = m_sections[x + (z * m_sectionsPerSide)].m_renderMesh;
+			auto& theMesh = GetSection(x,z).m_renderMesh;
 			if (theMesh.GetStreams().size() > 0)
 			{
 				targetPass.AddInstance(&theMesh, glm::mat4());

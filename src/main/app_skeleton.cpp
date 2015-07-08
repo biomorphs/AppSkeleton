@@ -26,6 +26,48 @@ inline glm::vec3 VoxelPosition(glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::
 	return (clumpOrigin + voxelSize * glm::vec3(vx, vy, vz)) + voxelCenter;
 }
 
+uint8_t Sphere(const glm::vec3& voxelPosition, const glm::vec3& center, float radius, uint8_t value)
+{
+	if (glm::distance(voxelPosition, center) <= radius)
+	{
+		return value;
+	}
+	else
+	{
+		return static_cast<uint8_t>(Materials::Air);
+	}
+}
+
+inline float Box(const glm::vec3& voxelPosition, const glm::vec3& boxMin, const glm::vec3& boxMax)
+{
+	const glm::vec3 bpos = (boxMax + boxMin) * 0.5f;
+	const glm::vec3 b = (boxMax - boxMin) * 0.5f;
+	return glm::length(glm::max(glm::abs(bpos - voxelPosition) - b, glm::vec3(0.0)));
+}
+
+inline bool Pillar(VoxelModel::ClumpDataAccessor& accessor, int x, int y, int z, const glm::vec3& vox, const glm::vec3& center)
+{
+	float pillar = Box(vox, center - glm::vec3(0.5f, 0.0f, 0.5f), center + glm::vec3(0.5f, 0.5f, 0.5f));
+	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.25f, -0.5f, 0.25f), center + glm::vec3(0.25f, 7.5f, 0.25f)));
+	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.5f, -7.5f, 0.5f), center + glm::vec3(0.5f, 8.0f, 0.5f)));
+	if (pillar <= 0.0f)
+	{
+		if (Box(vox, center - glm::vec3(0.125f, 0.0f, 0.125f), center + glm::vec3(0.125f, 8.0f, 0.125f)) <= 0.0f)
+		{
+			auto theClump = accessor.GetClump();
+			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::OuterWall);
+			return true;
+		}
+		else
+		{
+			auto theClump = accessor.GetClump();
+			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::Pillars);
+			return true;
+		}
+	}
+	return false;
+}
+
 struct SphereFiller
 {
 	glm::vec3 m_center;
@@ -54,58 +96,6 @@ struct SphereFiller
 		}
 	}
 };
-
-uint8_t Sphere(const glm::vec3& voxelPosition, const glm::vec3& center, float radius, uint8_t value)
-{
-	if (glm::distance(voxelPosition, center) <= radius)
-	{
-		return value;
-	}
-	else
-	{
-		return static_cast<uint8_t>(Materials::Air);
-	}
-}
-
-inline float Box(const glm::vec3& voxelPosition, const glm::vec3& boxMin, const glm::vec3& boxMax)
-{
-	const glm::vec3 bpos = (boxMax + boxMin) * 0.5f;
-	const glm::vec3 b = (boxMax - boxMin) * 0.5f;
-	return glm::length(glm::max(glm::abs(bpos - voxelPosition) - b, glm::vec3(0.0)));
-}
-
-struct ValueFiller
-{
-	uint8_t m_value;
-	void operator()(VoxelModel::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
-	{
-		auto theClump = accessor.GetClump();
-		memset(theClump, m_value, sizeof(VoxelModel::BlockType::ClumpType));
-	}
-};
-
-inline bool Pillar(VoxelModel::ClumpDataAccessor& accessor, int x, int y, int z, const glm::vec3& vox, const glm::vec3& center)
-{
-	float pillar = Box(vox, center - glm::vec3(0.5f, 0.0f, 0.5f), center + glm::vec3(0.5f, 0.5f, 0.5f));
-	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.25f, -0.5f, 0.25f), center + glm::vec3(0.25f, 7.5f, 0.25f)));
-	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.5f, -7.5f, 0.5f), center + glm::vec3(0.5f, 8.0f, 0.5f)));
-	if (pillar <= 0.0f)
-	{
-		if (Box(vox, center - glm::vec3(0.125f, 0.0f, 0.125f), center + glm::vec3(0.125f, 8.0f, 0.125f)) <= 0.0f)
-		{
-			auto theClump = accessor.GetClump();
-			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::OuterWall);
-			return true;
-		}
-		else
-		{
-			auto theClump = accessor.GetClump();
-			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::Pillars);
-			return true;
-		}
-	}
-	return false;
-}
 
 struct TestRoomBuilder
 {
@@ -168,7 +158,10 @@ struct TestRoomBuilder
 						continue;
 					}
 
-					//Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(8.0f, 0.0f, 8.0f));
+					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(3.0f, 0.0f, 3.0f));
+					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.0f, 0.0f, 3.0f));
+					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(3.0f, 0.0f, 13.0f));
+					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.0f, 0.0f, 13.0f));
 				}
 			}
 		}
@@ -193,8 +186,7 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	floorMaterials.SetRenderMaterialAsset(materialAsset);
 
 	m_testFloor = std::make_unique<Floor>();
-	m_testFloor->Create(floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
-	m_testFloor->SetJobSystem(m_jobSystem);
+	m_testFloor->Create(m_jobSystem, floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
 	TestRoomBuilder valFiller;
 	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f,8.0f,128.0f)), valFiller);
@@ -252,18 +244,18 @@ bool AppSkeleton::Tick()
 {
 	if (m_testFloor != nullptr)
 	{
+		m_testFloor->RebuildDirtyMeshes();
 #ifndef SDE_DEBUG
 		SphereFiller sphere;
 		sphere.m_value = 0;
-		const int c_numHoles = 4;
+		const int c_numHoles = 16;
 		for (int i = 0;i < c_numHoles;++i)
 		{
-			sphere.m_radius = RandFloat(1.5f);
+			sphere.m_radius = RandFloat(2.0f);
 			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
 			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
 		}
 #endif
-		m_testFloor->RebuildDirtyMeshes();
 	}
 
 	// Rendering submission
@@ -278,19 +270,9 @@ bool AppSkeleton::Tick()
 	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
 	m_debugCameraController->ApplyToCamera(m_renderSystem->DebugCamera());
 
-	// raycast into floor using camera
-	glm::vec3 rayStart = forwardPass.GetCamera().Position();
-	glm::vec3 rayEnd = forwardPass.GetCamera().Target();
-	rayEnd = rayStart + (glm::normalize(rayEnd - rayStart) * 128.0f);
-	float tIntersect = 0.0f;
-	if (m_testFloor != nullptr && m_testFloor->RayIntersectsRoom(rayStart, rayEnd, tIntersect))
-	{
-		glm::vec3 intersectPoint = rayStart + ((rayEnd - rayStart) * tIntersect);
-		m_renderSystem->GetDebugRender().AddAxisAtPoint(intersectPoint);
-	}
-
 	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(0.0f));
-	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(4.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(64.0f));
+	m_renderSystem->GetDebugRender().AddAxisAtPoint(glm::vec3(128.0f));
 
 	return true;
 }
