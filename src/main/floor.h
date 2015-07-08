@@ -35,7 +35,9 @@ public:
 
 	// Async stuff
 	void ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier, const char* dbgName);
-	void FireRay(const glm::vec3& rayStart, const glm::vec3& rayEnd);
+
+	// Test!
+	inline VoxelModel& GetModel() { return m_voxelData; }
 
 private:
 	struct SectionDesc

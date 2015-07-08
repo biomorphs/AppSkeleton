@@ -9,7 +9,7 @@
 #include "sde/asset_system.h"
 #include "sde/debug_render.h"
 #include "sde/job_system.h"
-#include "math/dda.h"
+#include "vox/model_ray_marcher.h"
 #include <algorithm>
 
 enum class Materials : uint8_t
@@ -26,6 +26,29 @@ inline glm::vec3 VoxelPosition(glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::
 {
 	return (clumpOrigin + voxelSize * glm::vec3(vx, vy, vz)) + voxelCenter;
 }
+
+struct RaymarchTester
+{
+	uint8_t m_value;
+	SDE::DebugRender* m_dbgRender;
+	bool operator()(VoxelModel::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	{
+		for (int z = 0;z < 2;++z)
+		{
+			for (int y = 0;y < 2;++y)
+			{
+				for (int x = 0;x < 2;++x)
+				{
+					if (accessor.GetClump()->VoxelAt(x, y, z) != 0)
+					{
+						m_dbgRender->AddAxisAtPoint(VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z));
+					}
+				}
+			}
+		}
+		return true;	// Keep going
+	}
+};
 
 uint8_t Sphere(const glm::vec3& voxelPosition, const glm::vec3& center, float radius, uint8_t value)
 {
@@ -87,7 +110,7 @@ struct SphereFiller
 					{
 						auto theClump = accessor.GetClump();
 						auto& thisVoxel = theClump->VoxelAt(x, y, z);
-						if (thisVoxel != static_cast<uint8_t>(Materials::OuterWall))
+						//if (thisVoxel != static_cast<uint8_t>(Materials::OuterWall))
 						{
 							thisVoxel = m_value;
 						}
@@ -241,64 +264,30 @@ bool AppSkeleton::PostInit()
 
 #define RandFloat(max)	max * ((float)rand() / (float)RAND_MAX)
 
-struct DDAIntersectTest
-{
-	SDE::RenderSystem* m_renderSystem;
-	glm::vec3 m_voxelSize;
-
-	DDAIntersectTest(SDE::RenderSystem* rsys)
-		: m_renderSystem(rsys)
-	{
-	}
-
-	bool OnDDAIntersection(const glm::ivec3& p)
-	{
-		if (p.y == 0)
-		{
-			const glm::vec3 voxelPos = m_voxelSize * glm::vec3(p);
-			const glm::vec3 voxelCenter = voxelPos + (m_voxelSize * 0.5f);
-			m_renderSystem->GetDebugRender().AddBox(voxelCenter, m_voxelSize, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-		}
-		return false;
-	}
-
-	bool Run(const glm::vec3& rs, const glm::vec3& re, const glm::vec3& vs)
-	{
-		m_voxelSize = vs;
-		m_renderSystem->GetDebugRender().AddLine(rs, re, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		Math::DDAIntersect(rs, re, vs, *this);
-		return true;
-	}
-};
-
 bool AppSkeleton::Tick()
 {
-	static bool s_addSphere = 1;
+	glm::vec3 ddaRayStart = glm::vec3(2.0f, 2.0f, 2.0f);
+	glm::vec3 ddaRayEnd = glm::vec3(128.0f, 8.0f, 128.0f);
 
-	glm::vec3 ddaRayStart = m_renderSystem->DebugCamera().Position();
-	glm::vec3 ddaRayDir = (m_renderSystem->DebugCamera().Target() - m_renderSystem->DebugCamera().Position());
-	glm::vec3 ddaRayEnd = ddaRayStart + (glm::normalize(ddaRayDir) * 128.0f);
-	static glm::vec3 ddaVoxSize(8.0f);
+	RaymarchTester filler;
+	filler.m_value = static_cast<uint8_t>(Materials::Pillars);
+	filler.m_dbgRender = &m_renderSystem->GetDebugRender();
 
-	DDAIntersectTest dda(m_renderSystem);
-	dda.Run(ddaRayStart, ddaRayEnd, ddaVoxSize);
+	Vox::ModelRaymarcher<VoxelModel> rayMarcher(m_testFloor->GetModel());
+	rayMarcher.Raymarch(ddaRayStart, ddaRayEnd, filler);
 
 	if (m_testFloor != nullptr)
 	{
 		m_testFloor->RebuildDirtyMeshes();
 #ifndef SDE_DEBUG
-		if (s_addSphere == true)
+		SphereFiller sphere;
+		sphere.m_value = 0;
+		const int c_numHoles = 8;
+		for (int i = 0;i < c_numHoles;++i)
 		{
-			//s_addSphere = false;
-			SphereFiller sphere;
-			sphere.m_value = 0;
-			const int c_numHoles = 4;
-			for (int i = 0;i < c_numHoles;++i)
-			{
-				sphere.m_radius = RandFloat(2.0f);
-				sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
-				m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere, "sphere");
-			}
+			sphere.m_radius = RandFloat(1.5f);
+			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
+			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere, "sphere");
 		}
 #endif
 	}
