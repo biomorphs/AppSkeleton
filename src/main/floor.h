@@ -34,7 +34,7 @@ public:
 	void Render(Render::RenderPass& targetPass);
 
 	// Async stuff
-	void ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier);
+	void ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier, const char* dbgName);
 
 private:
 	struct SectionDesc
@@ -46,7 +46,7 @@ private:
 	};
 
 	void RemeshSection(int32_t x, int32_t z);
-	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator);
+	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator, const char* dbgName);
 	SectionDesc& GetSection(int32_t x, int32_t z);
 	void AddSectionMeshResult(int32_t x, int32_t z, Render::MeshBuilder& result);
 

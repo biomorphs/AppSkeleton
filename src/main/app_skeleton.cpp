@@ -189,7 +189,7 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	m_testFloor->Create(m_jobSystem, floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
 	TestRoomBuilder valFiller;
-	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f,8.0f,128.0f)), valFiller);
+	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f,8.0f,128.0f)), valFiller, "room");
 }
 
 AppSkeleton::AppSkeleton()
@@ -240,20 +240,27 @@ bool AppSkeleton::PostInit()
 
 #define RandFloat(max)	max * ((float)rand() / (float)RAND_MAX)
 
+#pragma optimize("", off)
 bool AppSkeleton::Tick()
 {
+	static bool s_addSphere = 1;
+
 	if (m_testFloor != nullptr)
 	{
 		m_testFloor->RebuildDirtyMeshes();
 #ifndef SDE_DEBUG
-		SphereFiller sphere;
-		sphere.m_value = 0;
-		const int c_numHoles = 16;
-		for (int i = 0;i < c_numHoles;++i)
+		if (s_addSphere == true)
 		{
-			sphere.m_radius = RandFloat(2.0f);
-			sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
-			m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere);
+			//s_addSphere = false;
+			SphereFiller sphere;
+			sphere.m_value = 0;
+			const int c_numHoles = 4;
+			for (int i = 0;i < c_numHoles;++i)
+			{
+				sphere.m_radius = RandFloat(2.0f);
+				sphere.m_center = glm::vec3(RandFloat(128.0f), RandFloat(8.0f), RandFloat(128.0f));
+				m_testFloor->ModifyData(Math::Box3(sphere.m_center - sphere.m_radius, sphere.m_center + sphere.m_radius), sphere, "sphere");
+			}
 		}
 #endif
 	}
@@ -276,6 +283,7 @@ bool AppSkeleton::Tick()
 
 	return true;
 }
+#pragma optimize("", on)
 
 void AppSkeleton::Shutdown()
 {	

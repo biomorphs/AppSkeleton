@@ -109,18 +109,23 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	Render::MeshBuilder meshBuilder;
 	VoxelMeshBuilder voxelMeshBuilder;
 	voxelMeshBuilder.BuildMeshData(m_voxelData, m_materials, thisSection.m_bounds, meshBuilder);
-	AddSectionMeshResult(x, z, meshBuilder);
+
+	if (meshBuilder.HasData())
+	{
+		AddSectionMeshResult(x, z, meshBuilder);
+	}
 }
 
-void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator)
+void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator, const char* dbgName)
 {
-	auto updateJob = [this, updateBounds, iterator, x, z]
+	auto updateJob = [this, updateBounds, iterator, x, z, dbgName]
 	{
 		auto& thisSection = GetSection(x, z);
-		
+
 		if (!thisSection.m_updateJobCounter.CAS(0,1))	// If there are update jobs currently running, we wait
 		{
-			SubmitUpdateJob(updateBounds, x, z, iterator);
+			thisSection.m_updatesPending.Add(-1);
+			SubmitUpdateJob(updateBounds, x, z, iterator, dbgName);
 		}
 		else
 		{
@@ -136,10 +141,10 @@ void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z
 	};
 
 	GetSection(x, z).m_updatesPending.Add(1);		// Keep track of how many updates are queued
-	m_jobSystem->PushJob(updateJob);
+	m_jobSystem->PushJob(updateJob, dbgName);
 }
 
-void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier)
+void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier, const char* dbgName)
 {
 	if (!bounds.Intersects(m_totalBounds))
 	{
@@ -163,7 +168,7 @@ void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modif
 			Math::Box3 sectionBounds = GetSection(x,z).m_bounds;
 			sectionBounds.Min() = glm::max(sectionBounds.Min(), minEditBounds);
 			sectionBounds.Max() = glm::min(sectionBounds.Max(), maxEditBounds);
-			SubmitUpdateJob(sectionBounds, x, z, modifier);
+			SubmitUpdateJob(sectionBounds, x, z, modifier, dbgName);
 		}
 	}
 }
