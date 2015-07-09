@@ -116,7 +116,7 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	}
 }
 
-void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator, const char* dbgName)
+void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback iterator, const char* dbgName)
 {
 	auto updateJob = [this, updateBounds, iterator, x, z, dbgName]
 	{
@@ -129,7 +129,8 @@ void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z
 		}
 		else
 		{
-			m_voxelData.IterateForArea(updateBounds, VoxelModel::IteratorAccess::ReadWrite, iterator);
+			Vox::ModelAreaDataWriter<VoxelModel> areaWriter(m_voxelData);
+			areaWriter.WriteArea(updateBounds, iterator);
 
 			if (thisSection.m_updatesPending.Add(-1) == 1)	// If pending updates = 1, that's us, so we will now remesh
 			{
@@ -144,7 +145,7 @@ void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z
 	m_jobSystem->PushJob(updateJob, dbgName);
 }
 
-void Floor::ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier, const char* dbgName)
+void Floor::ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback modifier, const char* dbgName)
 {
 	if (!bounds.Intersects(m_totalBounds))
 	{

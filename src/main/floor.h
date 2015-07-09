@@ -2,6 +2,7 @@
 
 #include "voxel_definitions.h"
 #include "voxel_material.h"
+#include "vox/model_area_data_writer.h"
 #include "render/mesh.h"
 #include "render/mesh_builder.h"
 #include "math/box3.h"
@@ -34,7 +35,7 @@ public:
 	void Render(Render::RenderPass& targetPass);
 
 	// Async stuff
-	void ModifyData(const Math::Box3& bounds, VoxelModel::ClumpIterator modifier, const char* dbgName);
+	void ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback modifier, const char* dbgName);
 
 	// Test!
 	inline VoxelModel& GetModel() { return m_voxelData; }
@@ -49,7 +50,7 @@ private:
 	};
 
 	void RemeshSection(int32_t x, int32_t z);
-	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, VoxelModel::ClumpIterator iterator, const char* dbgName);
+	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback iterator, const char* dbgName);
 	SectionDesc& GetSection(int32_t x, int32_t z);
 	void AddSectionMeshResult(int32_t x, int32_t z, Render::MeshBuilder& result);
 

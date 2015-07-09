@@ -22,29 +22,15 @@ enum class Materials : uint8_t
 	OuterWall
 };
 
-inline glm::vec3 VoxelPosition(glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter, int vx, int vy, int vz)
-{
-	return (clumpOrigin + voxelSize * glm::vec3(vx, vy, vz)) + voxelCenter;
-}
-
 struct RaymarchTester
 {
 	uint8_t m_value;
 	SDE::DebugRender* m_dbgRender;
-	bool operator()(VoxelModel::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	bool operator()(const Vox::ModelRaymarcherParams<VoxelModel>& params)
 	{
-		for (int z = 0;z < 2;++z)
+		if (params.VoxelData() != 0)
 		{
-			for (int y = 0;y < 2;++y)
-			{
-				for (int x = 0;x < 2;++x)
-				{
-					if (accessor.GetClump()->VoxelAt(x, y, z) != 0)
-					{
-						m_dbgRender->AddAxisAtPoint(VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z));
-					}
-				}
-			}
+			m_dbgRender->AddAxisAtPoint(params.VoxelPosition());
 		}
 		return true;	// Keep going
 	}
@@ -69,7 +55,7 @@ inline float Box(const glm::vec3& voxelPosition, const glm::vec3& boxMin, const 
 	return glm::length(glm::max(glm::abs(bpos - voxelPosition) - b, glm::vec3(0.0)));
 }
 
-inline bool Pillar(VoxelModel::ClumpDataAccessor& accessor, int x, int y, int z, const glm::vec3& vox, const glm::vec3& center)
+inline bool Pillar(Vox::ModelAreaDataWriterParams<VoxelModel>& areaParams, int x, int y, int z, const glm::vec3& vox, const glm::vec3& center)
 {
 	float pillar = Box(vox, center - glm::vec3(0.5f, 0.0f, 0.5f), center + glm::vec3(0.5f, 0.5f, 0.5f));
 	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.25f, -0.5f, 0.25f), center + glm::vec3(0.25f, 7.5f, 0.25f)));
@@ -78,14 +64,12 @@ inline bool Pillar(VoxelModel::ClumpDataAccessor& accessor, int x, int y, int z,
 	{
 		if (Box(vox, center - glm::vec3(0.125f, 0.0f, 0.125f), center + glm::vec3(0.125f, 8.0f, 0.125f)) <= 0.0f)
 		{
-			auto theClump = accessor.GetClump();
-			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::OuterWall);
+			areaParams.WriteVoxel(x, y, z, static_cast<uint8_t>(Materials::OuterWall));
 			return true;
 		}
 		else
 		{
-			auto theClump = accessor.GetClump();
-			theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::Pillars);
+			areaParams.WriteVoxel(x, y, z, static_cast<uint8_t>(Materials::Pillars));
 			return true;
 		}
 	}
@@ -97,23 +81,18 @@ struct SphereFiller
 	glm::vec3 m_center;
 	float m_radius;
 	uint8_t m_value;
-	void operator()(VoxelModel::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	void operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& areaParams)
 	{
-		for (int z = 0;z < 2;++z)
+		for (int32_t vz = areaParams.StartVoxel().z; vz != areaParams.EndVoxel().z; ++vz)
 		{
-			for (int y = 0;y < 2;++y)
+			for (int32_t vy = areaParams.StartVoxel().y; vy != areaParams.EndVoxel().y; ++vy)
 			{
-				for (int x = 0;x < 2;++x)
+				for (int32_t vx = areaParams.StartVoxel().x; vx != areaParams.EndVoxel().x; ++vx)
 				{
-					const glm::vec3 vPos = VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z);
+					const glm::vec3 vPos = areaParams.VoxelPosition(vx, vy, vz);
 					if (glm::distance(vPos, m_center) <= m_radius)
 					{
-						auto theClump = accessor.GetClump();
-						auto& thisVoxel = theClump->VoxelAt(x, y, z);
-						//if (thisVoxel != static_cast<uint8_t>(Materials::OuterWall))
-						{
-							thisVoxel = m_value;
-						}
+						areaParams.WriteVoxel(vx, vy, vz, m_value);
 					}
 				}
 			}
@@ -123,15 +102,15 @@ struct SphereFiller
 
 struct TestRoomBuilder
 {
-	void operator()(VoxelModel::ClumpDataAccessor& accessor, glm::vec3 clumpOrigin, glm::vec3 voxelSize, glm::vec3 voxelCenter)
+	void operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& areaParams)
 	{
-		for (int z = 0;z < 2;++z)
+		for (int32_t vz = areaParams.StartVoxel().z; vz != areaParams.EndVoxel().z; ++vz)
 		{
-			for (int y = 0;y < 2;++y)
+			for (int32_t vy = areaParams.StartVoxel().y; vy != areaParams.EndVoxel().y; ++vy)
 			{
-				for (int x = 0;x < 2;++x)
+				for (int32_t vx = areaParams.StartVoxel().x; vx != areaParams.EndVoxel().x; ++vx)
 				{
-					glm::vec3 vPos = VoxelPosition(clumpOrigin, voxelSize, voxelCenter, x, y, z);
+					glm::vec3 vPos = areaParams.VoxelPosition(vx, vy, vz);
 					uint8_t val = static_cast<uint8_t>(Materials::Air);
 
 					// first apply outer walls
@@ -142,8 +121,7 @@ struct TestRoomBuilder
 					outerWall = std::min(outerWall, Box(vPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(128.0f, 0.125f, 128.0f)));
 					if (outerWall <= 0.0f)
 					{
-						auto theClump = accessor.GetClump();
-						theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::OuterWall);
+						areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::OuterWall));
 						continue;
 					}
 
@@ -152,16 +130,14 @@ struct TestRoomBuilder
 					// apply carpets to each inner room
 					if (Box(wallSpacePos, glm::vec3(2.0f, 0.125f, 2.0f), glm::vec3(14.0f, 0.25f, 14.0f)) <= 0.0f)
 					{
-						auto theClump = accessor.GetClump();
-						theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::Carpet);
+						areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::Carpet));
 						continue;
 					}
 
 					// apply floor if no carpet
 					if (Box(wallSpacePos, glm::vec3(0.0f, 0.125f, 0.0f), glm::vec3(16.0f, 0.25f, 16.0f)) <= 0.0f)
 					{
-						auto theClump = accessor.GetClump();
-						theClump->VoxelAt(x, y, z) = static_cast<uint8_t>(Materials::Floor);
+						areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::Floor));
 						continue;
 					}
 
@@ -176,16 +152,15 @@ struct TestRoomBuilder
 							float innerSteelWall = Box(wallSpacePos, glm::vec3(0.0f + 0.125f, 0.0f, 0.0f), glm::vec3(0.25f + 0.125f, 8.0f, 16.0f));
 							innerSteelWall = std::min(innerSteelWall, Box(wallSpacePos, glm::vec3(0.0f, 0.0f, 0.0f + 0.125f), glm::vec3(16.0f, 8.0f, 0.5f - 0.125f)));
 
-							auto theClump = accessor.GetClump();
-							theClump->VoxelAt(x, y, z) = innerSteelWall <= 0.0f ? static_cast<uint8_t>(Materials::OuterWall) : static_cast<uint8_t>(Materials::Walls);
+							areaParams.WriteVoxel(vx, vy, vz, innerSteelWall <= 0.0f ? static_cast<uint8_t>(Materials::OuterWall) : static_cast<uint8_t>(Materials::Walls) );
 						}
 						continue;
 					}
 
-					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(3.0f, 0.0f, 3.0f));
-					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.0f, 0.0f, 3.0f));
-					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(3.0f, 0.0f, 13.0f));
-					Pillar(accessor, x, y, z, wallSpacePos, glm::vec3(13.0f, 0.0f, 13.0f));
+					Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(3.0f, 0.0f, 3.0f));
+					Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(13.0f, 0.0f, 3.0f));
+					Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(3.0f, 0.0f, 13.0f));
+					Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(13.0f, 0.0f, 13.0f));
 				}
 			}
 		}
