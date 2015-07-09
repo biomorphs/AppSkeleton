@@ -18,6 +18,8 @@ void VoxelMeshBuilder::BuildMeshData(const VoxelModel& sourceModel, const VoxelM
 	uint32_t colourStream = targetMesh.AddVertexStream(4);
 	uint32_t normalLookupStream = targetMesh.AddVertexStream(1);
 
+	glm::vec4 giResults[4];
+
 	targetMesh.BeginChunk();
 	for (auto q = extractor.Begin(); q != extractor.End(); ++q)
 	{
