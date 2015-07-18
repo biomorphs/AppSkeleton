@@ -4,7 +4,10 @@
 		"typeid" : "RMAT",
 		"dependencies" : ["simple_diffuse_shader"],
 		"data" : {
-			"shader_program" : "simple_diffuse_shader"
+			"shader_program" : "simple_diffuse_shader",
+			"uniforms_vec4" : {
+				"ColourModulation" : "1.0,1.0,1.0,1.0"
+			}
 		}
 	}
 }

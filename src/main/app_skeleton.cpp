@@ -13,6 +13,8 @@
 #include "sde/job_system.h"
 #include "vox/model_ray_marcher.h"
 
+#include "render/dds_loader.h"
+#include "render/texture_source.h"
 
 struct ShotTest
 {
@@ -115,6 +117,24 @@ AppSkeleton::~AppSkeleton()
 
 bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
+	Render::DDSLoader loadTest;
+	Render::TextureSource dxt1, dxt3, dxt5;
+	
+	if (!loadTest.LoadFile("textures/test.dds", dxt1))
+	{
+		return false;
+	}
+
+	if (!loadTest.LoadFile("textures/test3.dds", dxt3))
+	{
+		return false;
+	}
+
+	if (!loadTest.LoadFile("textures/test5.dds", dxt5))
+	{
+		return false;
+	}
+
 	m_inputSystem = (Input::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
@@ -193,7 +213,10 @@ bool AppSkeleton::Tick()
 	}
 
 	// Collect floor meshing results
-	m_testFloor->RebuildDirtyMeshes();
+	if (m_testFloor)
+	{
+		m_testFloor->RebuildDirtyMeshes();
+	}
 
 	// Rendering submission
 	auto& forwardPass = m_renderSystem->GetPass(m_forwardPassId);

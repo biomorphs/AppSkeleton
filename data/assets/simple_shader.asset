@@ -5,10 +5,9 @@
 		"data" : {
 			"vertexshader" : "shaders/simple_vertex.txt",
 			"fragmentshader" : "shaders/simple_fragment.txt",
-			"globaluniforms" : 
-			{
-				"modelviewproj" : "MVP"
-			}
+			"uniforms" : [
+				"MVP"
+			]
 		}
 	}
 }

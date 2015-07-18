@@ -4,6 +4,7 @@ layout(location = 1) in vec3 colour;
 layout(location = 2) in float normalLookup;
 
 uniform mat4 MVP;
+uniform vec4 ColourModulation;
 
 out vec3 colourOut;
 out vec3 normalOut;
@@ -22,6 +23,6 @@ void main()
 	vec4 v = vec4(pos_modelSpace,1); // Transform an homogeneous 4D vector, remember ?
     gl_Position = MVP * v;
 
-	colourOut = colour;
+	colourOut = colour * ColourModulation.xyz;
 	normalOut = NormalLookup[int(normalLookup)];
 }
