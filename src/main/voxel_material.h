@@ -19,8 +19,11 @@ public:
 
 	inline const glm::vec4& Colour() const { return m_colour; }
 	inline glm::vec4& Colour() { return m_colour; }
+	inline float& TextureIndex() { return m_texture; }
+	inline const float& TextureIndex() const { return m_texture; }
 
 private:
+	float m_texture;
 	glm::vec4 m_colour;
 };
 

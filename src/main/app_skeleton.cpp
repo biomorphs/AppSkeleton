@@ -11,13 +11,9 @@
 #include "sde/render_system.h"
 #include "sde/asset_system.h"
 #include "sde/debug_render.h"
+#include "sde/font_asset.h"
 #include "sde/job_system.h"
 #include "vox/model_ray_marcher.h"
-
-#include "render/mesh.h"
-#include "render/mesh_builder.h"
-
-std::unique_ptr<Render::Mesh> g_testMesh;
 
 struct ShotTest
 {
@@ -37,15 +33,18 @@ struct ShotTest
 						auto& voxel = areaParams.VoxelAt(vx, vy, vz);
 						if (voxel != static_cast<uint8_t>(Materials::Air))
 						{
-							uint8_t voxelDamage = GetVoxelDamage(voxel);
-							if (voxelDamage < 3)
+							if (GetVoxelMaterial(voxel) != Materials::OuterWall)
 							{
-								voxelDamage++;
-								voxel = PackVoxel(GetVoxelMaterial(voxel), voxelDamage);
-							}
-							else if (GetVoxelMaterial(voxel) != Materials::OuterWall)
-							{
-								voxel = static_cast<uint8_t>(Materials::Air);
+								uint8_t voxelDamage = GetVoxelDamage(voxel);
+								if (voxelDamage < 3)
+								{
+									voxelDamage++;
+									voxel = PackVoxel(GetVoxelMaterial(voxel), voxelDamage);
+								}
+								else
+								{
+									voxel = 0;
+								}
 							}
 						}
 					}
@@ -80,11 +79,16 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	VoxelMaterialSet floorMaterials;
 
 	glm::vec4 baseColours[] = {
-		glm::vec4(0.667f, 0.518f, 0.224f, 1.0f),	// Walls
-		glm::vec4(0.165f, 0.498f, 0.251f, 1.0f),	// Floor
-		glm::vec4(0.18f, 0.263f, 0.447f, 1.0f),		// Carpet
-		glm::vec4(0.667f, 0.275f, 0.224f, 1.0f),	// Pillars
-		glm::vec4(0.4f, 0.4f, 0.5f, 1.0f)			// Outerwall
+		//glm::vec4(0.667f, 0.518f, 0.224f, 1.0f),	// Walls
+		//glm::vec4(0.165f, 0.498f, 0.251f, 1.0f),	// Floor
+		//glm::vec4(0.18f, 0.263f, 0.447f, 1.0f),		// Carpet
+		//glm::vec4(0.667f, 0.275f, 0.224f, 1.0f),	// Pillars
+		//glm::vec4(0.4f, 0.4f, 0.5f, 1.0f)			// Outerwall
+		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Walls
+		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Floor
+		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Carpet
+		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Pillars
+		glm::vec4(1.0f,1.0f,1.0f,1.0f)	// Outerwall
 	};
 	const uint8_t c_maxMaterials = (uint8_t)(sizeof(baseColours) / sizeof(baseColours[0]));
 	for (uint8_t m = 0; m < c_maxMaterials; ++m)
@@ -92,8 +96,9 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 		for (uint8_t dmg = 0; dmg < 4; ++dmg)
 		{
 			VoxelMaterial mat;
-			float dmgColourMod = 0.3f + (0.7f * ((float)(3 - dmg) / 3.0f));
+			float dmgColourMod = 0.5f + (0.5f * ((float)(3 - dmg) / 3.0f));
 			mat.Colour() = dmgColourMod * baseColours[m];
+			mat.TextureIndex() = (float)m;
 			floorMaterials.SetMaterial(PackVoxel(static_cast<Materials>(m + 1), dmg), mat);
 		}
 	}
@@ -135,6 +140,7 @@ bool AppSkeleton::PostInit()
 	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
 	assetCreator.RegisterFactory<Render::ShaderProgramAssetFactory>(Render::ShaderProgramAsset::c_assetType);
 	assetCreator.RegisterFactory<Render::TextureAssetFactory>(Render::TextureAsset::c_assetType);
+	assetCreator.RegisterFactory<SDE::FontAssetFactory>(SDE::FontAsset::c_assetType);
 
 	// Set up camera controller and render passes
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
@@ -157,30 +163,12 @@ bool AppSkeleton::PostInit()
 		}
 	});
 
-	// load textured material, on completion, make a test mesh
-	m_assetSystem->LoadAsset("simple_textured_material", [this](const std::string& asset, bool result)
+	// load font
+	m_assetSystem->LoadAsset("arial_normal_font", [this](const std::string& asset, bool result)
 	{
 		if (result)
 		{
-			auto loadedAsset = this->m_assetSystem->GetAsset(asset);
-			auto* mat = static_cast<Render::MaterialAsset*>(loadedAsset.get());
-
-			g_testMesh = std::make_unique<Render::Mesh>();
-			Render::MeshBuilder build;
-			build.AddVertexStream(3);
-			build.AddVertexStream(3);
-			build.BeginChunk();
-			build.BeginTriangle();
-			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f));
-			build.SetStreamData(1, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-			build.EndTriangle();
-			build.BeginTriangle();
-			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f), glm::vec3(0.0f, 20.0f, 0.0f));
-			build.SetStreamData(1, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			build.EndTriangle();
-			build.EndChunk();
-			build.CreateMesh(*g_testMesh.get());
-			g_testMesh->SetMaterial(mat->GetMaterial());
+			SDE_LOG("Font loaded ok");
 		}
 	});
 
@@ -240,11 +228,6 @@ bool AppSkeleton::Tick()
 		m_testFloor->Render(forwardPass);
 	}
 
-	if (g_testMesh != nullptr)
-	{
-		forwardPass.AddInstance(g_testMesh.get(), glm::mat4());
-	}
-
 	// apply camera controller to passes
 	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
 	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
@@ -255,7 +238,6 @@ bool AppSkeleton::Tick()
 
 void AppSkeleton::Shutdown()
 {	
-	g_testMesh = nullptr;
 	m_testFloor = nullptr;
 	m_debugCameraController = nullptr;
 }

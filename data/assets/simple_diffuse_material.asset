@@ -2,11 +2,14 @@
 	"asset" : {
 		"id" : "simple_diffuse_material",
 		"typeid" : "RMAT",
-		"dependencies" : ["simple_diffuse_shader"],
+		"dependencies" : ["simple_diffuse_shader", "floor_test_texture"],
 		"data" : {
 			"shader_program" : "simple_diffuse_shader",
 			"uniforms_vec4" : {
 				"ColourModulation" : "1.0,1.0,1.0,1.0"
+			},
+			"uniforms_textures" : {
+				"BaseTexture" : "floor_test_texture"
 			}
 		}
 	}

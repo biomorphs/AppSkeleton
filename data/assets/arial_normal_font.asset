@@ -1,0 +1,11 @@
+{
+	"asset" : {
+		"id" : "arial_normal_font",
+		"typeid" : "FONT",
+		"dependencies" : ["arial_normal_texture"],
+		"data" : {
+			"font_data" : "fonts/arial_normal.dat",
+			"texture_map" : "arial_normal_texture"
+		}
+	}
+}

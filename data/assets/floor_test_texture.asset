@@ -1,0 +1,15 @@
+{
+	"asset" : {
+		"id" : "floor_test_texture",
+		"typeid" : "RTEX",
+		"data" : {
+			"source_textures" : [
+				"textures/brick.dds",
+				"textures/tiled_floor.dds",
+				"textures/carpet.dds",
+				"textures/rock.dds",
+				"textures/concrete.dds"
+			]
+		}
+	}
+}

@@ -1,11 +1,10 @@
 {
 	"asset" : {
-		"id" : "test_texture",
+		"id" : "arial_normal_texture",
 		"typeid" : "RTEX",
 		"data" : {
 			"source_textures" : [
-				"textures/test.dds",
-				"textures/test2.dds"
+					"fonts/arial_normal_dxt3.dds"
 			]
 		}
 	}

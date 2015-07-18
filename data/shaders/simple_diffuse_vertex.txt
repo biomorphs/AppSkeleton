@@ -1,12 +1,14 @@
 #version 330 core
 layout(location = 0) in vec3 pos_modelSpace;
 layout(location = 1) in vec3 colour;
-layout(location = 2) in float normalLookup;
+layout(location = 2) in vec3 uvs;
+layout(location = 3) in float normalLookup;
 
 uniform mat4 MVP;
 uniform vec4 ColourModulation;
 
 out vec3 colourOut;
+out vec3 uvOut;
 out vec3 normalOut;
 
 void main()
@@ -24,5 +26,6 @@ void main()
     gl_Position = MVP * v;
 
 	colourOut = colour * ColourModulation.xyz;
+	uvOut = uvs;
 	normalOut = NormalLookup[int(normalLookup)];
 }
