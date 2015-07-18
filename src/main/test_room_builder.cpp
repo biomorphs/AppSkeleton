@@ -122,11 +122,13 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (corridoor != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, corridoor);
+					continue;
 				}
 				corridoor = Room(vPos, glm::vec3(100.0f, 0.0f, 0.25f), glm::vec3(108.0f, 8.0f, 127.75f));
 				if (corridoor != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, corridoor);
+					continue;
 				}
 
 				// middle arena
@@ -134,6 +136,7 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (arena != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, arena);
+					continue;
 				}
 
 				// bottom rooms
@@ -141,11 +144,13 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(64.25f, 0.0f, 0.25f), glm::vec3(99.75f, 8.0f, 33.75f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 
 				// top rooms
@@ -153,11 +158,13 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(64.25f, 0.0f, 94.25f), glm::vec3(99.75f, 8.0f, 127.75f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 
 				// Side passages
@@ -165,21 +172,25 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(0.25f, 0.0f, 92.0f), glm::vec3(19.75f, 8.0f, 98.0f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(108.25f, 0.0f, 30.0f), glm::vec3(127.75f, 8.0f, 36.0f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(108.25f, 0.0f, 92.0f), glm::vec3(127.75f, 8.0f, 98.0f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}	
 
 				// Corner rooms
@@ -187,21 +198,25 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(0.25f, 0.0f, 98.25f), glm::vec3(19.75f, 8.0f, 127.75f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(108.25f, 0.0f, 0.25f), glm::vec3(127.75f, 8.0f, 29.75f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(108.25f, 0.0f, 98.25f), glm::vec3(127.75f, 8.0f, 127.75f));
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 
 				// Side rooms
@@ -209,6 +224,7 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 				r = Room(vPos, glm::vec3(108.25f, 0.0f, 36.25f), glm::vec3(127.75f, 8.0f, 91.75f));
 				if (r != (uint8_t)-1)
