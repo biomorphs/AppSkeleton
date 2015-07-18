@@ -185,7 +185,7 @@ bool AppSkeleton::Tick()
 				jitterMax * ((float)rand() / (float)RAND_MAX),
 				jitterMax * ((float)rand() / (float)RAND_MAX));
 			jitter -= jitterMax * 0.5f;
-			const glm::vec3 rayEndPos = glm::normalize(cameraDir + jitter) * 32.0f;
+			const glm::vec3 rayEndPos = glm::normalize(cameraDir + jitter) * 128.0f;
 
 			Vox::ModelRaymarcher<VoxelModel> rayMarcher(m_testFloor->GetModel());
 			rayMarcher.Raymarch(cameraPos, cameraPos + rayEndPos, filler);

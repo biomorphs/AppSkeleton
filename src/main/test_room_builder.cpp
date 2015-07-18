@@ -3,25 +3,100 @@
 #include <glm.hpp>
 #include <algorithm>
 
-inline bool Pillar(Vox::ModelAreaDataWriterParams<VoxelModel>& areaParams, int x, int y, int z, const glm::vec3& vox, const glm::vec3& center)
+inline uint8_t Pillar(const glm::vec3& vox, const glm::vec3& bl, const glm::vec3& tr)
 {
-	float pillar = Box(vox, center - glm::vec3(0.5f, 0.0f, 0.5f), center + glm::vec3(0.5f, 0.5f, 0.5f));
-	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.25f, -0.5f, 0.25f), center + glm::vec3(0.25f, 7.5f, 0.25f)));
-	pillar = std::min(pillar, Box(vox, center - glm::vec3(0.5f, -7.5f, 0.5f), center + glm::vec3(0.5f, 8.0f, 0.5f)));
+	if (Box(vox, bl, tr) > 0.0f)
+	{
+		return 0;
+	}
+
+	if (Box(vox, glm::vec3(bl.x + 0.35f, bl.y, bl.z + 0.35f), glm::vec3(tr.x - 0.35f, tr.y, tr.z - 0.35f)) <= 0.0f)
+	{
+		return static_cast<uint8_t>(Materials::OuterWall);
+	}
+
+	float pillar = Box(vox, bl, glm::vec3(tr.x, 0.5f, tr.z));
+	pillar = std::min(pillar, Box(vox, glm::vec3(bl.x, tr.y - 0.5f, bl.z), tr));
+	pillar = std::min(pillar, Box(vox, bl + glm::vec3(0.25f), tr - glm::vec3(0.25f)));
 	if (pillar <= 0.0f)
 	{
-		if (Box(vox, center - glm::vec3(0.125f, 0.0f, 0.125f), center + glm::vec3(0.125f, 8.0f, 0.125f)) <= 0.0f)
-		{
-			areaParams.WriteVoxel(x, y, z, static_cast<uint8_t>(Materials::OuterWall));
-			return true;
-		}
-		else
-		{
-			areaParams.WriteVoxel(x, y, z, static_cast<uint8_t>(Materials::Pillars));
-			return true;
-		}
+		return static_cast<uint8_t>(Materials::Pillars);
 	}
-	return false;
+	return 0;
+}
+
+uint8_t RoomWithRug(const glm::vec3& vox, const glm::vec3& bl, const glm::vec3& tr, float rg)
+{
+	const float c_iwt = 0.125f;		// inner wall thickness
+	if (Box(vox, bl, tr) > 0.0f)
+	{
+		return -1;
+	}
+	else
+	{
+		// Add Interior walls with thickness of 1 voxel
+		float innerWall = Box(vox, bl + glm::vec3(0.0f, 0.125f, 0.0f), tr);
+		float innerSpace = Box(vox, bl + glm::vec3(c_iwt, 0.0f, c_iwt), tr - glm::vec3(c_iwt, 0.0f, c_iwt));
+		if (innerWall <= 0.0f && innerSpace > 0.0f)
+		{
+			return (uint8_t)Materials::Walls;
+		}
+
+		// Add floor + carpet
+		float floor = Box(vox, bl, glm::vec3(tr.x, bl.y + 0.125f, tr.z));
+		if (floor <= 0.0f)
+		{
+			return (uint8_t)Materials::OuterWall;
+		}
+
+		float rug = Box(vox, bl + glm::vec3(rg, 0.125f, rg), glm::vec3(tr.x - rg, bl.y + 0.25f, tr.z - rg));
+		if (rug <= 0.0f)
+		{
+			return (uint8_t)Materials::Carpet;
+		}
+
+		float carpet = Box(vox, bl + glm::vec3(0.0f, 0.125f, 0.0f), glm::vec3(tr.x, bl.y + 0.25f, tr.z));
+		if (carpet <= 0.0f)
+		{
+			return (uint8_t)Materials::Floor;
+		}
+
+		return (uint8_t)Materials::Air;
+	}
+}
+
+uint8_t Room(const glm::vec3& vox, const glm::vec3& bl, const glm::vec3& tr)
+{
+	const float c_iwt = 0.125f;		// inner wall thickness
+	if (Box(vox, bl, tr) > 0.0f)
+	{
+		return -1;
+	}
+	else
+	{
+		// Add Interior walls with thickness of 1 voxel
+		float innerWall = Box(vox, bl + glm::vec3(0.0f,0.125f,0.0f), tr);
+		float innerSpace = Box(vox, bl + glm::vec3(c_iwt, 0.0f, c_iwt), tr - glm::vec3(c_iwt, 0.0f, c_iwt));
+		if (innerWall <= 0.0f && innerSpace > 0.0f)
+		{
+			return (uint8_t)Materials::Walls;
+		}
+
+		// Add floor + carpet
+		float floor = Box(vox, bl, glm::vec3(tr.x, bl.y + 0.125f, tr.z));
+		if (floor <= 0.0f)
+		{
+			return (uint8_t)Materials::OuterWall;
+		}
+
+		float carpet = Box(vox, bl + glm::vec3(0.0f,0.125f,0.0f), glm::vec3(tr.x, bl.y + 0.25f, tr.z));
+		if (carpet <= 0.0f)
+		{
+			return (uint8_t)Materials::Floor;
+		}
+
+		return (uint8_t)Materials::Air;
+	}
 }
 
 void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& areaParams)
@@ -35,66 +110,111 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				glm::vec3 vPos = areaParams.VoxelPosition(vx, vy, vz);
 				uint8_t val = static_cast<uint8_t>(Materials::Air);
 
-				// first apply outer walls
-				float outerWall = Box(vPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 8.0f, 128.0f));
-				outerWall = std::min(outerWall, Box(vPos, glm::vec3(127.5f, 0.0f, 0.0f), glm::vec3(128.0f, 8.0f, 128.0f)));
-				outerWall = std::min(outerWall, Box(vPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(128.0f, 8.0f, 0.5f)));
-				outerWall = std::min(outerWall, Box(vPos, glm::vec3(0.0f, 0.0f, 127.5f), glm::vec3(128.0f, 8.0f, 128.0f)));
-				outerWall = std::min(outerWall, Box(vPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(128.0f, 0.125f, 128.0f)));
+				// fill with outter wall, subtract details
+				float outerWall = Box(vPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(128.0f, 8.0f, 128.0f));
 				if (outerWall <= 0.0f)
 				{
-					areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::OuterWall));
-					continue;
+					areaParams.WriteVoxel(vx, vy, vz, (uint8_t)Materials::OuterWall);
 				}
 
-				glm::vec3 wallSpacePos = glm::mod(vPos, glm::vec3(16.0f, 8.0f, 16.0f));
-
-				// apply carpets to each inner room
-				if (Box(wallSpacePos, glm::vec3(2.0f, 0.125f, 2.0f), glm::vec3(14.0f, 0.25f, 14.0f)) <= 0.0f)
+				// Corridoors
+				uint8_t corridoor = Room(vPos, glm::vec3(20.0f, 0.0f, 0.25f), glm::vec3(28.0f, 8.0f, 127.75f));
+				if (corridoor != (uint8_t)-1)
 				{
-					areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::Carpet));
-					continue;
+					areaParams.WriteVoxel(vx, vy, vz, corridoor);
 				}
-
-				// apply floor if no carpet
-				if (Box(wallSpacePos, glm::vec3(0.0f, 0.125f, 0.0f), glm::vec3(16.0f, 0.25f, 16.0f)) <= 0.0f)
+				corridoor = Room(vPos, glm::vec3(100.0f, 0.0f, 0.25f), glm::vec3(108.0f, 8.0f, 127.75f));
+				if (corridoor != (uint8_t)-1)
 				{
-					areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::Floor));
-					continue;
+					areaParams.WriteVoxel(vx, vy, vz, corridoor);
 				}
 
-				float innerWall = Box(wallSpacePos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 8.0f, 16.0f));
-				innerWall = std::min(innerWall, Box(wallSpacePos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(16.0f, 8.0f, 0.5f)));
-				if (innerWall <= 0.0f)
+				// middle arena
+				uint8_t arena = RoomWithRug(vPos, glm::vec3(28.25f, 0.0f, 34.0f), glm::vec3(99.75f, 8.0f, 94.0f), 6.0f);
+				if (arena != (uint8_t)-1)
 				{
-					float door = Box(wallSpacePos, glm::vec3(6.0f, 0.25f, 0.0f), glm::vec3(10.0f, 6.0f, 0.5f));
-					door = std::min(door, Box(wallSpacePos, glm::vec3(0.0f, 0.125f, 6.0f), glm::vec3(0.5f, 6.0f, 10.0f)));
-					if (door > 0.0f)
-					{
-						float innerDoor = Box(wallSpacePos, glm::vec3(5.75f, 0.25f, 0.0f), glm::vec3(10.25f, 6.25f, 0.5f));
-						innerDoor = std::min(innerDoor, Box(wallSpacePos, glm::vec3(0.0f, 0.125f, 5.75f), glm::vec3(0.5f, 6.25f, 10.25f)));
-						if (innerDoor <= 0.0f)
-						{
-							areaParams.WriteVoxel(vx, vy, vz, static_cast<uint8_t>(Materials::Walls));
-						}
-						else
-						{
-							float innerSteelWall = Box(wallSpacePos, glm::vec3(0.0f + 0.125f, 0.0f, 0.0f), glm::vec3(0.25f + 0.125f, 8.0f, 16.0f));
-							innerSteelWall = std::min(innerSteelWall, Box(wallSpacePos, glm::vec3(0.0f, 0.0f, 0.0f + 0.125f), glm::vec3(16.0f, 8.0f, 0.5f - 0.125f)));
-							areaParams.WriteVoxel(vx, vy, vz, innerSteelWall <= 0.0f ? static_cast<uint8_t>(Materials::OuterWall) : static_cast<uint8_t>(Materials::Walls));
-						}
-					}
-					else
-					{
-						
-					}
-					continue;
+					areaParams.WriteVoxel(vx, vy, vz, arena);
 				}
 
-				Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(3.0f, 0.0f, 3.0f));
-				Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(13.0f, 0.0f, 3.0f));
-				Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(3.0f, 0.0f, 13.0f));
-				Pillar(areaParams, vx, vy, vz, wallSpacePos, glm::vec3(13.0f, 0.0f, 13.0f));
+				// bottom rooms
+				uint8_t r = Room(vPos, glm::vec3(28.25f, 0.0f, 0.25f), glm::vec3(63.75f, 8.0f, 33.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(64.25f, 0.0f, 0.25f), glm::vec3(99.75f, 8.0f, 33.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+
+				// top rooms
+				r = Room(vPos, glm::vec3(28.25f, 0.0f, 94.25f), glm::vec3(63.75f, 8.0f, 127.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(64.25f, 0.0f, 94.25f), glm::vec3(99.75f, 8.0f, 127.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+
+				// Side passages
+				r = Room(vPos, glm::vec3(0.25f, 0.0f, 30.0f), glm::vec3(19.75f, 8.0f, 36.0f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(0.25f, 0.0f, 92.0f), glm::vec3(19.75f, 8.0f, 98.0f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(108.25f, 0.0f, 30.0f), glm::vec3(127.75f, 8.0f, 36.0f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(108.25f, 0.0f, 92.0f), glm::vec3(127.75f, 8.0f, 98.0f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}	
+
+				// Corner rooms
+				r = Room(vPos, glm::vec3(0.25f, 0.0f, 0.25f), glm::vec3(19.75f, 8.0f, 29.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(0.25f, 0.0f, 98.25f), glm::vec3(19.75f, 8.0f, 127.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(108.25f, 0.0f, 0.25f), glm::vec3(127.75f, 8.0f, 29.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(108.25f, 0.0f, 98.25f), glm::vec3(127.75f, 8.0f, 127.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+
+				// Side rooms
+				r = Room(vPos, glm::vec3(0.25f, 0.0f, 36.25f), glm::vec3(19.75f, 8.0f, 91.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
+				r = Room(vPos, glm::vec3(108.25f, 0.0f, 36.25f), glm::vec3(127.75f, 8.0f, 91.75f));
+				if (r != (uint8_t)-1)
+				{
+					areaParams.WriteVoxel(vx, vy, vz, r);
+				}
 			}
 		}
 	}
