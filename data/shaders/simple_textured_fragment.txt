@@ -1,0 +1,9 @@
+#version 330 core
+in vec2 uvsOut;
+out vec4 colour;
+
+uniform sampler2D MyTexture;
+ 
+void main(){
+    colour = texture(MyTexture, uvsOut);
+}

@@ -1,0 +1,13 @@
+#version 330 core
+layout(location = 0) in vec3 pos_modelSpace;
+layout(location = 1) in vec2 uvs;
+
+uniform mat4 MVP;
+out vec2 uvsOut;
+
+void main()
+{
+	vec4 v = vec4(pos_modelSpace,1); // Transform an homogeneous 4D vector, remember ?
+    gl_Position = MVP * v;
+	uvsOut = uvs;
+}

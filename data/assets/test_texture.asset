@@ -1,0 +1,9 @@
+{
+	"asset" : {
+		"id" : "test_texture",
+		"typeid" : "RTEX",
+		"data" : {
+			"source_texture" : "textures/test.dds"
+		}
+	}
+}

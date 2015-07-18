@@ -6,6 +6,7 @@
 #include "input/input_system.h"
 #include "render/material_asset.h"
 #include "render/shader_program_asset.h"
+#include "render/texture_asset.h"
 #include "sde/debug_camera_controller.h"
 #include "sde/render_system.h"
 #include "sde/asset_system.h"
@@ -13,8 +14,10 @@
 #include "sde/job_system.h"
 #include "vox/model_ray_marcher.h"
 
-#include "render/dds_loader.h"
-#include "render/texture_source.h"
+#include "render/mesh.h"
+#include "render/mesh_builder.h"
+
+std::unique_ptr<Render::Mesh> g_testMesh;
 
 struct ShotTest
 {
@@ -117,24 +120,6 @@ AppSkeleton::~AppSkeleton()
 
 bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 {
-	Render::DDSLoader loadTest;
-	Render::TextureSource dxt1, dxt3, dxt5;
-	
-	if (!loadTest.LoadFile("textures/test.dds", dxt1))
-	{
-		return false;
-	}
-
-	if (!loadTest.LoadFile("textures/test3.dds", dxt3))
-	{
-		return false;
-	}
-
-	if (!loadTest.LoadFile("textures/test5.dds", dxt5))
-	{
-		return false;
-	}
-
 	m_inputSystem = (Input::InputSystem*)systemEnumerator.GetSystem("Input");
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
@@ -149,9 +134,12 @@ bool AppSkeleton::PostInit()
 	auto& assetCreator = m_assetSystem->GetCreator();
 	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
 	assetCreator.RegisterFactory<Render::ShaderProgramAssetFactory>(Render::ShaderProgramAsset::c_assetType);
+	assetCreator.RegisterFactory<Render::TextureAssetFactory>(Render::TextureAsset::c_assetType);
 
 	// Set up camera controller and render passes
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
+	m_debugCameraController->SetPosition(glm::vec3(64.0f, 20.0f, 64.0f));
+
 	m_forwardPassId = m_renderSystem->CreatePass("Forward");
 	m_renderSystem->GetPass(m_forwardPassId).GetCamera().SetClipPlanes(0.1f, 256.0f);
 	m_renderSystem->GetPass(m_forwardPassId).GetCamera().SetFOVAndAspectRatio(70.0f, 1280.0f / 720.0f);
@@ -166,6 +154,33 @@ bool AppSkeleton::PostInit()
 		{
 			auto loadedAsset = this->m_assetSystem->GetAsset(asset);
 			InitialiseFloor(loadedAsset);
+		}
+	});
+
+	// load textured material, on completion, make a test mesh
+	m_assetSystem->LoadAsset("simple_textured_material", [this](const std::string& asset, bool result)
+	{
+		if (result)
+		{
+			auto loadedAsset = this->m_assetSystem->GetAsset(asset);
+			auto* mat = static_cast<Render::MaterialAsset*>(loadedAsset.get());
+
+			g_testMesh = std::make_unique<Render::Mesh>();
+			Render::MeshBuilder build;
+			build.AddVertexStream(3);
+			build.AddVertexStream(2);
+			build.BeginChunk();
+			build.BeginTriangle();
+			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f));
+			build.SetStreamData(1, glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec2(1.0f, 1.0f));
+			build.EndTriangle();
+			build.BeginTriangle();
+			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f), glm::vec3(0.0f, 20.0f, 0.0f));
+			build.SetStreamData(1, glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+			build.EndTriangle();
+			build.EndChunk();
+			build.CreateMesh(*g_testMesh.get());
+			g_testMesh->SetMaterial(mat->GetMaterial());
 		}
 	});
 
@@ -225,6 +240,11 @@ bool AppSkeleton::Tick()
 		m_testFloor->Render(forwardPass);
 	}
 
+	if (g_testMesh != nullptr)
+	{
+		forwardPass.AddInstance(g_testMesh.get(), glm::mat4());
+	}
+
 	// apply camera controller to passes
 	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
 	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
@@ -235,6 +255,7 @@ bool AppSkeleton::Tick()
 
 void AppSkeleton::Shutdown()
 {	
+	g_testMesh = nullptr;
 	m_testFloor = nullptr;
 	m_debugCameraController = nullptr;
 }
