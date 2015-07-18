@@ -3,7 +3,10 @@
 		"id" : "test_texture",
 		"typeid" : "RTEX",
 		"data" : {
-			"source_texture" : "textures/test.dds"
+			"source_textures" : [
+				"textures/test.dds",
+				"textures/test2.dds"
+			]
 		}
 	}
 }

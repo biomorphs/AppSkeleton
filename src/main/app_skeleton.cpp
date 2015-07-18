@@ -168,15 +168,15 @@ bool AppSkeleton::PostInit()
 			g_testMesh = std::make_unique<Render::Mesh>();
 			Render::MeshBuilder build;
 			build.AddVertexStream(3);
-			build.AddVertexStream(2);
+			build.AddVertexStream(3);
 			build.BeginChunk();
 			build.BeginTriangle();
 			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f));
-			build.SetStreamData(1, glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec2(1.0f, 1.0f));
+			build.SetStreamData(1, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 			build.EndTriangle();
 			build.BeginTriangle();
 			build.SetStreamData(0, glm::vec3(0.0f, 10.0f, 0.0f), glm::vec3(10.0f, 20.0f, 0.0f), glm::vec3(0.0f, 20.0f, 0.0f));
-			build.SetStreamData(1, glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f));
+			build.SetStreamData(1, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			build.EndTriangle();
 			build.EndChunk();
 			build.CreateMesh(*g_testMesh.get());

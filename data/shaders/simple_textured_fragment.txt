@@ -1,9 +1,9 @@
 #version 330 core
-in vec2 uvsOut;
+in vec3 uvsOut;
 out vec4 colour;
 
-uniform sampler2D MyTexture;
+uniform sampler2DArray MyTexture;
  
 void main(){
-    colour = texture(MyTexture, uvsOut);
+    colour = texture(MyTexture, vec3(uvsOut));
 }
