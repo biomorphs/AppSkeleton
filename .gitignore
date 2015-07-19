@@ -23,3 +23,6 @@
 
 #binaries
 /bin/
+
+#imgui user data
+/data/imgui.ini
