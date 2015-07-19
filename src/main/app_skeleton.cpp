@@ -4,6 +4,7 @@
 #include "core/system_enumerator.h"
 #include "core/timer.h"
 #include "input/input_system.h"
+#include "debug_gui/debug_gui_system.h"
 #include "render/material_asset.h"
 #include "render/shader_program_asset.h"
 #include "render/texture_asset.h"
@@ -56,7 +57,6 @@ struct ShotTest
 
 struct RaymarchTester
 {
-	SDE::DebugRender* m_dbgRender;
 	Floor* m_floor;
 	float m_radius;
 	bool operator()(const Vox::ModelRaymarcherParams<VoxelModel>& params)
@@ -79,11 +79,6 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	VoxelMaterialSet floorMaterials;
 
 	glm::vec4 baseColours[] = {
-		//glm::vec4(0.667f, 0.518f, 0.224f, 1.0f),	// Walls
-		//glm::vec4(0.165f, 0.498f, 0.251f, 1.0f),	// Floor
-		//glm::vec4(0.18f, 0.263f, 0.447f, 1.0f),		// Carpet
-		//glm::vec4(0.667f, 0.275f, 0.224f, 1.0f),	// Pillars
-		//glm::vec4(0.4f, 0.4f, 0.5f, 1.0f)			// Outerwall
 		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Walls
 		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Floor
 		glm::vec4(1.0f,1.0f,1.0f,1.0f),	// Carpet
@@ -129,12 +124,24 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_renderSystem = (SDE::RenderSystem*)systemEnumerator.GetSystem("Render");
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
 	m_jobSystem = (SDE::JobSystem*)systemEnumerator.GetSystem("Jobs");
-	
-	return true;
-}
+	m_debugGui = (DebugGui::DebugGuiSystem*)systemEnumerator.GetSystem("DebugGui");
 
-bool AppSkeleton::PostInit()
-{
+	// Pass init params to renderer
+	SDE::RenderSystem::InitialisationParams renderParams(c_windowWidth, c_windowHeight, false, "AppSkeleton");
+	m_renderSystem->SetInitialiseParams(renderParams);
+
+	// Set up render passes
+	m_forwardPassId = m_renderSystem->CreatePass("Forward");
+
+	uint32_t guiPassId = m_renderSystem->CreatePass("DebugGui");
+	m_renderSystem->GetPass(guiPassId).GetRenderState().m_blendingEnabled = true;
+	m_renderSystem->GetPass(guiPassId).GetRenderState().m_depthTestEnabled = false;
+	m_renderSystem->GetPass(guiPassId).GetRenderState().m_backfaceCullEnabled = false;
+
+	// Set up debug gui data
+	DebugGui::DebugGuiSystem::InitialisationParams guiParams(m_renderSystem, m_inputSystem, guiPassId);
+	m_debugGui->SetInitialiseParams(guiParams);
+
 	// register asset factories
 	auto& assetCreator = m_assetSystem->GetCreator();
 	assetCreator.RegisterFactory<Render::MaterialAssetFactory>(Render::MaterialAsset::c_assetType);
@@ -142,16 +149,15 @@ bool AppSkeleton::PostInit()
 	assetCreator.RegisterFactory<Render::TextureAssetFactory>(Render::TextureAsset::c_assetType);
 	assetCreator.RegisterFactory<SDE::FontAssetFactory>(SDE::FontAsset::c_assetType);
 
-	// Set up camera controller and render passes
+	return true;
+}
+
+bool AppSkeleton::PostInit()
+{
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_debugCameraController->SetPosition(glm::vec3(64.0f, 20.0f, 64.0f));
-
-	m_forwardPassId = m_renderSystem->CreatePass("Forward");
-	m_renderSystem->GetPass(m_forwardPassId).GetCamera().SetClipPlanes(0.1f, 256.0f);
-	m_renderSystem->GetPass(m_forwardPassId).GetCamera().SetFOVAndAspectRatio(70.0f, 1280.0f / 720.0f);
-	m_renderSystem->DebugCamera().SetClipPlanes(0.1f, 256.0f);
-	m_renderSystem->DebugCamera().SetFOVAndAspectRatio(70.0f, 1280.0f / 720.0f);
-	m_renderSystem->SetClearColour(glm::vec4(0.14f, 0.23f, 0.45f, 1.0f));
+	m_camera.SetClipPlanes(0.1f, 256.0f);
+	m_camera.SetFOVAndAspectRatio(70.0f, (float)c_windowWidth / (float)c_windowHeight);
 
 	// load material, on completion, create the floor
 	m_assetSystem->LoadAsset("simple_diffuse_material", [this](const std::string& asset, bool result)
@@ -163,25 +169,19 @@ bool AppSkeleton::PostInit()
 		}
 	});
 
-	// load font
-	m_assetSystem->LoadAsset("arial_normal_font", [this](const std::string& asset, bool result)
-	{
-		if (result)
-		{
-			SDE_LOG("Font loaded ok");
-		}
-	});
-
 	return true;
 }
 
 bool AppSkeleton::Tick()
 {
+	// Update camera
+	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
+	m_debugCameraController->ApplyToCamera(m_camera);
+
 	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::RightShoulder)
 		|| m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::LeftShoulder)
 	{
 		RaymarchTester filler;
-		filler.m_dbgRender = &m_renderSystem->GetDebugRender();
 		filler.m_floor = m_testFloor.get();
 
 		uint32_t pellets = 0; 
@@ -201,8 +201,8 @@ bool AppSkeleton::Tick()
 
 		for (uint32_t p = 0; p < pellets; ++p)
 		{
-			const glm::vec3 cameraPos = m_renderSystem->DebugCamera().Position();
-			const glm::vec3 cameraTarget = m_renderSystem->DebugCamera().Target();
+			const glm::vec3 cameraPos = m_camera.Position();
+			const glm::vec3 cameraTarget = m_camera.Target();
 			const glm::vec3 cameraDir = glm::normalize(cameraTarget - cameraPos);
 			glm::vec3 jitter = glm::vec3(jitterMax * ((float)rand() / (float)RAND_MAX),
 				jitterMax * ((float)rand() / (float)RAND_MAX),
@@ -215,23 +215,14 @@ bool AppSkeleton::Tick()
 		}
 	}
 
-	// Collect floor meshing results
-	if (m_testFloor)
-	{
-		m_testFloor->RebuildDirtyMeshes();
-	}
+	// Rendering
+	m_renderSystem->SetClearColour(glm::vec4(0.14f, 0.23f, 0.45f, 1.0f));
 
-	// Rendering submission
 	auto& forwardPass = m_renderSystem->GetPass(m_forwardPassId);
 	if (m_testFloor != nullptr)
 	{
-		m_testFloor->Render(forwardPass);
+		m_testFloor->Render(m_camera, forwardPass);
 	}
-
-	// apply camera controller to passes
-	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
-	m_debugCameraController->ApplyToCamera(forwardPass.GetCamera());
-	m_debugCameraController->ApplyToCamera(m_renderSystem->DebugCamera());
 
 	return true;
 }

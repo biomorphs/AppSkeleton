@@ -4,6 +4,7 @@
 #include "render/material_asset.h"
 #include "render/mesh_builder.h"
 #include "render/render_pass.h"
+#include "render/camera.h"
 #include "math/intersections.h"
 #include "voxel_mesh_builder.h"
 #include "voxel_material.h"
@@ -174,16 +175,22 @@ void Floor::ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelM
 	}
 }
 
-void Floor::Render(Render::RenderPass& targetPass)
+void Floor::Render(Render::Camera& camera, Render::RenderPass& targetPass)
 {
+	RebuildDirtyMeshes();
 	for (int32_t z = 0; z < m_sectionsPerSide; ++z)
 	{
 		for (int32_t x = 0; x < m_sectionsPerSide; ++x)
-		{
+		{		
 			auto& theMesh = GetSection(x,z).m_renderMesh;
 			if (theMesh.GetStreams().size() > 0)
 			{
-				targetPass.AddInstance(&theMesh, glm::mat4());
+				const glm::mat4 mvp = camera.ProjectionMatrix() * camera.ViewMatrix();
+				
+				Render::UniformBuffer instanceUniforms;
+				instanceUniforms.SetValue("MVP", mvp);
+
+				targetPass.AddInstance(&theMesh, std::move(instanceUniforms));
 			}
 		}
 	}

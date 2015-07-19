@@ -13,6 +13,7 @@
 namespace Render
 {
 	class RenderPass;
+	class Camera;
 }
 
 namespace SDE
@@ -32,7 +33,7 @@ public:
 	void Create(SDE::JobSystem* jobSystem, VoxelMaterialSet& materials, const glm::vec3& floorSize, int32_t sectionDimensions);
 	void Destroy();
 	void RebuildDirtyMeshes();
-	void Render(Render::RenderPass& targetPass);
+	void Render(Render::Camera& camera, Render::RenderPass& targetPass);
 
 	// Async stuff
 	void ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback modifier, const char* dbgName);
