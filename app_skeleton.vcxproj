@@ -131,6 +131,9 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     <ClCompile Include="src\main\test_room_builder.cpp" />
     <ClCompile Include="src\main\voxel_material.cpp" />
     <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
+    <ClInclude Include="src\main\voxel_model_serialiser.inl">
+      <FileType>CppCode</FileType>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
@@ -140,6 +143,7 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     <ClInclude Include="src\main\voxel_definitions.h" />
     <ClInclude Include="src\main\voxel_material.h" />
     <ClInclude Include="src\main\voxel_mesh_builder.h" />
+    <ClInclude Include="src\main\voxel_model_serialiser.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SDLEngine\engine\asset.vcxproj">

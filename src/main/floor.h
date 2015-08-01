@@ -33,10 +33,13 @@ public:
 	void Create(SDE::JobSystem* jobSystem, VoxelMaterialSet& materials, const glm::vec3& floorSize, int32_t sectionDimensions);
 	void Destroy();
 	void RebuildDirtyMeshes();
+	void Update();
 	void Render(Render::Camera& camera, Render::RenderPass& targetPass);
 
 	// Async stuff
-	void ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback modifier, const char* dbgName);
+	void SaveNow(const char* filename);
+	void ModifyData(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier);
+	void ModifyDataAndSave(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier, const char* filename);
 
 	// Test!
 	inline VoxelModel& GetModel() { return m_voxelData; }
@@ -51,7 +54,7 @@ private:
 	};
 
 	void RemeshSection(int32_t x, int32_t z);
-	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback iterator, const char* dbgName);
+	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& iterator);
 	SectionDesc& GetSection(int32_t x, int32_t z);
 	void AddSectionMeshResult(int32_t x, int32_t z, Render::MeshBuilder& result);
 
@@ -64,4 +67,7 @@ private:
 	VoxelModel m_voxelData;
 	VoxelMaterialSet m_materials;
 	SDE::JobSystem* m_jobSystem;
+	Kernel::AtomicInt32 m_isSaving;
+	Kernel::AtomicInt32 m_totalWritesPending;
+	std::string m_saveFilename;
 };

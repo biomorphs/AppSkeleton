@@ -7,6 +7,7 @@
     <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
     <ClCompile Include="src\main\floor.cpp" />
     <ClCompile Include="src\main\test_room_builder.cpp" />
+    <ClCompile Include="src\main\voxel_model_serialiser.inl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
@@ -16,5 +17,6 @@
     <ClInclude Include="src\main\floor.h" />
     <ClInclude Include="src\main\test_room_builder.h" />
     <ClInclude Include="src\main\procedural_geometry.h" />
+    <ClInclude Include="src\main\voxel_model_serialiser.h" />
   </ItemGroup>
 </Project>

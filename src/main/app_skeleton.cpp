@@ -34,18 +34,15 @@ struct ShotTest
 						auto& voxel = areaParams.VoxelAt(vx, vy, vz);
 						if (voxel != static_cast<uint8_t>(Materials::Air))
 						{
-							if (GetVoxelMaterial(voxel) != Materials::OuterWall)
+							uint8_t voxelDamage = GetVoxelDamage(voxel);
+							if (voxelDamage < 3)
 							{
-								uint8_t voxelDamage = GetVoxelDamage(voxel);
-								if (voxelDamage < 3)
-								{
-									voxelDamage++;
-									voxel = PackVoxel(GetVoxelMaterial(voxel), voxelDamage);
-								}
-								else
-								{
-									voxel = 0;
-								}
+								voxelDamage++;
+								voxel = PackVoxel(GetVoxelMaterial(voxel), voxelDamage);
+							}
+							else if(GetVoxelMaterial(voxel) != Materials::OuterWall)
+							{
+								voxel = 0;
 							}
 						}
 					}
@@ -66,7 +63,7 @@ struct RaymarchTester
 			ShotTest shot;
 			shot.m_radius = m_radius;
 			shot.m_center = params.VoxelPosition();
-			m_floor->ModifyData(Math::Box3(shot.m_center - shot.m_radius, shot.m_center + shot.m_radius), shot, "sphere");
+			m_floor->ModifyData(Math::Box3(shot.m_center - shot.m_radius, shot.m_center + shot.m_radius), shot);
 			return false;
 		}
 		return true;	// Keep going
@@ -102,11 +99,12 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	m_testFloor = std::make_unique<Floor>();
 	m_testFloor->Create(m_jobSystem, floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
+	// We now populate the world data, then save it
 	TestRoomBuilder valFiller;
 #ifdef SDE_DEBUG
-	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(8.0f,8.0f,8.0f)), valFiller, "room");
+	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(8.0f,8.0f,8.0f)), valFiller, "models/test.vox");
 #else
-	m_testFloor->ModifyData(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller, "room");
+	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller, "models/test_big.vox");
 #endif
 }
 
@@ -178,6 +176,12 @@ bool AppSkeleton::Tick()
 	m_debugCameraController->Update(*m_inputSystem->ControllerState(0), 0.016);
 	m_debugCameraController->ApplyToCamera(m_camera);
 
+	// Update world
+	if (m_testFloor != nullptr)
+	{
+		m_testFloor->Update();
+	}
+
 	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::RightShoulder)
 		|| m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::LeftShoulder)
 	{
@@ -212,6 +216,14 @@ bool AppSkeleton::Tick()
 
 			Vox::ModelRaymarcher<VoxelModel> rayMarcher(m_testFloor->GetModel());
 			rayMarcher.Raymarch(cameraPos, cameraPos + rayEndPos, filler);
+		}
+	}
+
+	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::Start))
+	{
+		if (m_testFloor != nullptr)
+		{
+			m_testFloor->SaveNow("models/modified.vox");
 		}
 	}
 

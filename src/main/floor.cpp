@@ -8,11 +8,14 @@
 #include "math/intersections.h"
 #include "voxel_mesh_builder.h"
 #include "voxel_material.h"
+#include "voxel_model_serialiser.h"
 
 static const glm::vec3 c_floorTotalSize(128.0f);
 
 Floor::Floor()
 	: m_sectionsPerSide(0)
+	, m_isSaving(0)
+	, m_totalWritesPending(0)
 {
 }
 
@@ -117,16 +120,17 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	}
 }
 
-void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback iterator, const char* dbgName)
+void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& iterator)
 {
-	auto updateJob = [this, updateBounds, iterator, x, z, dbgName]
+	auto updateJob = [this, updateBounds, iterator, x, z]
 	{
 		auto& thisSection = GetSection(x, z);
 
 		if (!thisSection.m_updateJobCounter.CAS(0,1))	// If there are update jobs currently running, we wait
 		{
 			thisSection.m_updatesPending.Add(-1);
-			SubmitUpdateJob(updateBounds, x, z, iterator, dbgName);
+			m_totalWritesPending.Add(-1);
+			SubmitUpdateJob(updateBounds, x, z, iterator);
 		}
 		else
 		{
@@ -139,16 +143,44 @@ void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z
 			}
 
 			thisSection.m_updateJobCounter.Add(-1);	// we're done, someone else can update data now
+			m_totalWritesPending.Add(-1);
 		}
 	};
 
+	m_totalWritesPending.Add(1);
 	GetSection(x, z).m_updatesPending.Add(1);		// Keep track of how many updates are queued
-	m_jobSystem->PushJob(updateJob, dbgName);
+	m_jobSystem->PushJob(updateJob);
 }
 
-void Floor::ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback modifier, const char* dbgName)
+void Floor::SaveNow(const char* filename)
+{
+	SDE_ASSERT(m_isSaving.Get() == 0, "Dont overlap saves");
+	m_saveFilename = filename;
+	m_isSaving = 1;
+}
+
+void Floor::ModifyDataAndSave(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier, const char* filename)
 {
 	if (!bounds.Intersects(m_totalBounds))
+	{
+		return;
+	}
+
+	SDE_ASSERT(m_isSaving.Get() == 0, "Dont overlap saves");
+	
+	m_saveFilename = filename;
+	ModifyData(bounds, modifier);
+	m_isSaving = 1;
+}
+
+void Floor::ModifyData(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier)
+{
+	if (!bounds.Intersects(m_totalBounds))
+	{
+		return;
+	}
+
+	if (m_isSaving.Get() == 1)	// No other modifications allowed
 	{
 		return;
 	}
@@ -170,7 +202,25 @@ void Floor::ModifyData(const Math::Box3& bounds, Vox::ModelAreaDataWriter<VoxelM
 			Math::Box3 sectionBounds = GetSection(x,z).m_bounds;
 			sectionBounds.Min() = glm::max(sectionBounds.Min(), minEditBounds);
 			sectionBounds.Max() = glm::min(sectionBounds.Max(), maxEditBounds);
-			SubmitUpdateJob(sectionBounds, x, z, modifier, dbgName);
+			SubmitUpdateJob(sectionBounds, x, z, modifier);
+		}
+	}
+}
+
+void Floor::Update()
+{
+	if (m_isSaving.Get()==1)
+	{
+		if (m_totalWritesPending.Get() == 0)
+		{
+			// We will now issue a saving job.
+			auto savingJob = [this]()
+			{
+				VoxelModelSerialiser<VoxelModel> serialiser;
+				serialiser.WriteToFile(m_voxelData, m_saveFilename.c_str());
+			};
+			m_jobSystem->PushJob(savingJob, "Floor::Save");
+			m_isSaving.Set(0);
 		}
 	}
 }

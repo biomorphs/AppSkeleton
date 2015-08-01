@@ -136,6 +136,16 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (arena != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, arena);
+
+					if (Box(vPos, glm::vec3(63.75f, 0.25f, 63.75f), glm::vec3(64.25f, 2.25f, 64.25f)) <= 0.0f)
+					{
+						areaParams.WriteVoxel(vx, vy, vz, (uint8_t)Materials::Pillars);
+					}
+					else if (Box(vPos, glm::vec3(29.0f, 0.125f, 35.0f), glm::vec3(60.0f, 6.0f, 60.0f)) <= 0.0f)
+					{
+						areaParams.WriteVoxel(vx, vy, vz, (uint8_t)Materials::Pillars);
+					}
+
 					continue;
 				}
 
@@ -230,6 +240,7 @@ void TestRoomBuilder::operator()(Vox::ModelAreaDataWriterParams<VoxelModel>& are
 				if (r != (uint8_t)-1)
 				{
 					areaParams.WriteVoxel(vx, vy, vz, r);
+					continue;
 				}
 			}
 		}
