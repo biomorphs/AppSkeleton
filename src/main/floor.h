@@ -1,5 +1,6 @@
 #pragma once
 
+#include "floor_stats.h"
 #include "voxel_definitions.h"
 #include "voxel_material.h"
 #include "vox/model_area_data_writer.h"
@@ -35,8 +36,10 @@ public:
 	void RebuildDirtyMeshes();
 	void Update();
 	void Render(Render::Camera& camera, Render::RenderPass& targetPass);
+	void DisplayDebugGui(DebugGui::DebugGuiSystem& gui);
 
 	// Async stuff
+	bool LoadFile(const char* filename);
 	void SaveNow(const char* filename);
 	void ModifyData(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier);
 	void ModifyDataAndSave(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& modifier, const char* filename);
@@ -55,6 +58,7 @@ private:
 
 	void RemeshSection(int32_t x, int32_t z);
 	void SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& iterator);
+	void SubmitRemeshJob(const Math::Box3& updateBounds, int32_t x, int32_t z);
 	SectionDesc& GetSection(int32_t x, int32_t z);
 	void AddSectionMeshResult(int32_t x, int32_t z, Render::MeshBuilder& result);
 
@@ -68,6 +72,11 @@ private:
 	VoxelMaterialSet m_materials;
 	SDE::JobSystem* m_jobSystem;
 	Kernel::AtomicInt32 m_isSaving;
+	Kernel::AtomicInt32 m_isLoading;
+	Kernel::AtomicInt32 m_loadInProgress;
 	Kernel::AtomicInt32 m_totalWritesPending;
+	Kernel::AtomicInt32 m_totalVbBytes;
 	std::string m_saveFilename;
+	std::string m_loadFilename;
+	FloorStats m_stats;
 };

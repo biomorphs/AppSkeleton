@@ -1,5 +1,8 @@
 #include "app_skeleton.h"
 #include "test_room_builder.h"
+#include "particle_manager.h"
+#include "particle_effect.h"
+#include "particle_effects.h"
 
 #include "core/system_enumerator.h"
 #include "core/timer.h"
@@ -15,6 +18,8 @@
 #include "sde/font_asset.h"
 #include "sde/job_system.h"
 #include "vox/model_ray_marcher.h"
+
+#include "particle_tests.h"
 
 struct ShotTest
 {
@@ -56,10 +61,12 @@ struct RaymarchTester
 {
 	Floor* m_floor;
 	float m_radius;
+	AppSkeleton* m_app;
 	bool operator()(const Vox::ModelRaymarcherParams<VoxelModel>& params)
 	{
 		if (params.VoxelData() != 0)
 		{
+			m_app->SpawnParticlesAt(params.VoxelPosition());
 			ShotTest shot;
 			shot.m_radius = m_radius;
 			shot.m_center = params.VoxelPosition();
@@ -100,12 +107,42 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	m_testFloor->Create(m_jobSystem, floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
 	// We now populate the world data, then save it
-	TestRoomBuilder valFiller;
+//	TestRoomBuilder valFiller;
+//#ifdef SDE_DEBUG
+//	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f,8.0f,16.0f)), valFiller, "models/test.vox");
+//#else
+//	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller, "models/test_big.vox");
+//#endif
 #ifdef SDE_DEBUG
-	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(8.0f,8.0f,8.0f)), valFiller, "models/test.vox");
+	m_testFloor->LoadFile("models/test.vox");
 #else
-	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller, "models/test_big.vox");
+	m_testFloor->LoadFile("models/test_big.vox");
 #endif
+}
+
+void AppSkeleton::SpawnParticlesAt(glm::vec3 position)
+{
+	ParticleEffect* effect = m_particles->AddEffect(1024);
+	if (effect)
+	{
+		effect->AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitBurst(16)));
+
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateStaticPosition(position)));
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateSimpleLifetime(1.0f)));
+		static glm::vec3 velMin(-1.0f, -1.0f, -1.0f);
+		static glm::vec3 velMax(1.0f, 1.0f, 1.0f);
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateRandomVelocity(velMin, velMax)));
+
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::EulerPositionUpdater()));
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::GravityUpdater(-5.0f)));
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::KillOnZeroLife()));
+
+		effect->AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::DebugParticleRenderer(m_debugRender.get())));
+
+		effect->SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::KillOnZeroParticles()));
+
+		m_particles->StartEffect(effect);
+	}
 }
 
 AppSkeleton::AppSkeleton()
@@ -123,6 +160,7 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_assetSystem = (SDE::AssetSystem*)systemEnumerator.GetSystem("Assets");
 	m_jobSystem = (SDE::JobSystem*)systemEnumerator.GetSystem("Jobs");
 	m_debugGui = (DebugGui::DebugGuiSystem*)systemEnumerator.GetSystem("DebugGui");
+	m_particles = (ParticleManager*)systemEnumerator.GetSystem("Particles");
 
 	// Pass init params to renderer
 	SDE::RenderSystem::InitialisationParams renderParams(c_windowWidth, c_windowHeight, false, "AppSkeleton");
@@ -130,6 +168,9 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 
 	// Set up render passes
 	m_forwardPassId = m_renderSystem->CreatePass("Forward");
+	m_debugRenderPassId = m_renderSystem->CreatePass("Debug");
+	m_renderSystem->GetPass(m_debugRenderPassId).GetRenderState().m_backfaceCullEnabled = false;
+	m_renderSystem->GetPass(m_debugRenderPassId).GetRenderState().m_blendingEnabled = true;
 
 	uint32_t guiPassId = m_renderSystem->CreatePass("DebugGui");
 	m_renderSystem->GetPass(guiPassId).GetRenderState().m_blendingEnabled = true;
@@ -152,6 +193,11 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 
 bool AppSkeleton::PostInit()
 {
+	ParticleTests::RunTests();
+
+	m_debugRender = std::make_unique<SDE::DebugRender>();
+	m_debugRender->Create(1024 * 1024);
+
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_debugCameraController->SetPosition(glm::vec3(64.0f, 20.0f, 64.0f));
 	m_camera.SetClipPlanes(0.1f, 256.0f);
@@ -180,12 +226,14 @@ bool AppSkeleton::Tick()
 	if (m_testFloor != nullptr)
 	{
 		m_testFloor->Update();
+		m_testFloor->DisplayDebugGui(*m_debugGui);
 	}
 
 	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::RightShoulder)
 		|| m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::LeftShoulder)
 	{
 		RaymarchTester filler;
+		filler.m_app = this;
 		filler.m_floor = m_testFloor.get();
 
 		uint32_t pellets = 0; 
@@ -227,6 +275,19 @@ bool AppSkeleton::Tick()
 		}
 	}
 
+	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::Back))
+	{
+		if (m_testFloor != nullptr)
+		{
+			m_testFloor->LoadFile("models/modified.vox");
+		}
+	}
+
+	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::X))
+	{
+		SpawnParticlesAt(m_camera.Position());
+	}
+		
 	// Rendering
 	m_renderSystem->SetClearColour(glm::vec4(0.14f, 0.23f, 0.45f, 1.0f));
 
@@ -236,11 +297,15 @@ bool AppSkeleton::Tick()
 		m_testFloor->Render(m_camera, forwardPass);
 	}
 
+	auto& debugPass = m_renderSystem->GetPass(m_debugRenderPassId);
+	m_debugRender->PushToRenderPass(m_camera, debugPass);
+
 	return true;
 }
 
 void AppSkeleton::Shutdown()
 {	
+	m_debugRender = nullptr;
 	m_testFloor = nullptr;
 	m_debugCameraController = nullptr;
 }

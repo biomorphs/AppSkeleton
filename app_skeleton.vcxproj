@@ -126,14 +126,33 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main\floor.cpp" />
+    <ClCompile Include="src\main\floor_stats.cpp" />
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include="src\main\app_skeleton.cpp" />
+    <ClCompile Include="src\main\particle_effects.cpp" />
+    <ClCompile Include="src\main\particle_effect.cpp" />
+    <ClCompile Include="src\main\particle_manager.cpp" />
+    <ClCompile Include="src\main\particle_tests.cpp" />
     <ClCompile Include="src\main\test_room_builder.cpp" />
     <ClCompile Include="src\main\voxel_material.cpp" />
     <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
+    <ClInclude Include="src\main\floor_stats.h" />
+    <ClInclude Include="src\main\particle_container.h" />
+    <ClInclude Include="src\main\particle_buffer.h" />
+    <ClInclude Include="src\main\particle_effects.h" />
+    <ClInclude Include="src\main\particle_effect_lifetime.h" />
+    <ClInclude Include="src\main\particle_emitter.h" />
+    <ClInclude Include="src\main\particle_generator.h" />
+    <ClInclude Include="src\main\particle_manager.h" />
+    <ClInclude Include="src\main\particle_renderer.h" />
+    <ClInclude Include="src\main\particle_effect.h" />
+    <ClInclude Include="src\main\particle_tests.h" />
+    <ClInclude Include="src\main\particle_updater.h" />
     <ClInclude Include="src\main\voxel_model_serialiser.inl">
       <FileType>CppCode</FileType>
     </ClInclude>
+    <ClInclude Include="src\main\vox_model_fileformat.h" />
+    <ClInclude Include="src\main\vox_model_loader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\app_skeleton.h" />
@@ -170,6 +189,11 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     <ProjectReference Include="..\SDLEngine\engine\sde.vcxproj">
       <Project>{1c57d21c-a571-421f-983f-b1cd9ed07f02}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\main\particle_buffer.inl" />
+    <None Include="src\main\particle_container.inl" />
+    <None Include="src\main\vox_model_loader.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

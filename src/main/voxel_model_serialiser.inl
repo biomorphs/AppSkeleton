@@ -1,26 +1,7 @@
 #include "vox/model_data_reader.h"
 #include "core/run_length_encoding.h"
 #include "kernel/file_io.h"
-
-enum VoxelModelFileVersions
-{
-	Version_BaseRLE,	// Basic RLE-encoding per-block
-	Version_Current = Version_BaseRLE
-};
-
-struct ModelDataHeader
-{
-	char m_magic[8];
-	uint32_t m_version;
-	uint32_t m_blockCount;
-};
-
-struct ModelBlockHeader
-{
-	int32_t m_blockX;
-	int32_t m_blockY;
-	int32_t m_blockZ;
-};
+#include "vox_model_fileformat.h"
 
 template<class ModelType>
 VoxelModelSerialiser<ModelType>::VoxelModelSerialiser()
@@ -66,6 +47,9 @@ bool VoxelModelSerialiser<ModelType>::WriteBlockToFile(std::vector<uint8_t>& fil
 	}
 	rle.Flush(file);
 
+	ModelBlockHeader* headerPtr = reinterpret_cast<ModelBlockHeader*>(file.data() + fileSizeBeforeRLE);
+	headerPtr->m_dataSize = (uint32_t)(file.size() - fileSizeBeforeRLE) - sizeof(ModelBlockHeader);
+
 	if (isEmpty)
 	{
 		file.resize(fileSizeBeforeRLE);
@@ -107,6 +91,16 @@ void VoxelModelSerialiser<ModelType>::WriteToFile(const ModelType& srcModel, con
 	strcpy_s(header->m_magic, "VoxM");
 	header->m_version = Version_Current;
 	header->m_blockCount = blocksSerialised;
+	header->m_blockDimensions = typename ModelType::BlockType::VoxelDimensions;
+	header->m_voxelSize[0] = srcModel.GetVoxelSize().x;
+	header->m_voxelSize[1] = srcModel.GetVoxelSize().y;
+	header->m_voxelSize[2] = srcModel.GetVoxelSize().z;
+	header->m_totalBounds[0] = srcModel.GetTotalBounds().Min().x;
+	header->m_totalBounds[1] = srcModel.GetTotalBounds().Min().y;
+	header->m_totalBounds[2] = srcModel.GetTotalBounds().Min().z;
+	header->m_totalBounds[3] = srcModel.GetTotalBounds().Max().x;
+	header->m_totalBounds[4] = srcModel.GetTotalBounds().Max().y;
+	header->m_totalBounds[5] = srcModel.GetTotalBounds().Max().z;
 
 	Kernel::FileIO::SaveBinaryFile(filepath, rawData);
 }

@@ -6,6 +6,7 @@
 #include "input/input_system.h"
 #include "core/system_registrar.h"
 #include "app_skeleton.h"
+#include "particle_manager.h"
 
 // Register the app systems here
 class SystemRegistration : public Engine::IAppSystemRegistrar
@@ -17,6 +18,7 @@ public:
 		systemManager.RegisterSystem("Input", new Input::InputSystem());
 		systemManager.RegisterSystem("Assets", new SDE::AssetSystem());
 		systemManager.RegisterSystem("App", new AppSkeleton());
+		systemManager.RegisterSystem("Particles", new ParticleManager());
 		systemManager.RegisterSystem("DebugGui", new DebugGui::DebugGuiSystem());
 		systemManager.RegisterSystem("Render", new SDE::RenderSystem());
 	}

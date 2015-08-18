@@ -1,22 +1,131 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\main\main.cpp" />
-    <ClCompile Include="src\main\app_skeleton.cpp" />
-    <ClCompile Include="src\main\voxel_material.cpp" />
-    <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
-    <ClCompile Include="src\main\floor.cpp" />
-    <ClCompile Include="src\main\test_room_builder.cpp" />
-    <ClCompile Include="src\main\voxel_model_serialiser.inl" />
+    <ClCompile Include="src\main\voxel_material.cpp">
+      <Filter>voxelstuff</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\voxel_mesh_builder.cpp">
+      <Filter>voxelstuff</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\app_skeleton.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\floor.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\floor_stats.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\main.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\test_room_builder.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\particle_tests.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\particle_effects.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\particle_effect.cpp">
+      <Filter>particles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\particle_manager.cpp">
+      <Filter>particles</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\main\app_skeleton.h" />
-    <ClInclude Include="src\main\voxel_material.h" />
-    <ClInclude Include="src\main\voxel_mesh_builder.h" />
-    <ClInclude Include="src\main\voxel_definitions.h" />
-    <ClInclude Include="src\main\floor.h" />
-    <ClInclude Include="src\main\test_room_builder.h" />
-    <ClInclude Include="src\main\procedural_geometry.h" />
-    <ClInclude Include="src\main\voxel_model_serialiser.h" />
+    <ClInclude Include="src\main\voxel_model_serialiser.inl">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\vox_model_fileformat.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\vox_model_loader.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\voxel_definitions.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\voxel_material.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\voxel_mesh_builder.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\voxel_model_serialiser.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\app_skeleton.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\floor.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\floor_stats.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\procedural_geometry.h">
+      <Filter>voxelstuff</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\test_room_builder.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_emitter.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_renderer.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_updater.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_buffer.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_container.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_generator.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_tests.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_effects.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_effect.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_effect_lifetime.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particle_manager.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="particles">
+      <UniqueIdentifier>{c29bbb6e-0794-45f3-9c2d-68190a8f22ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="app">
+      <UniqueIdentifier>{cf2b2ecf-40a1-4c25-8e9f-6a7e91efc54e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="voxelstuff">
+      <UniqueIdentifier>{500435ef-0b99-42e3-88a6-c693b09d72d5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\main\vox_model_loader.inl">
+      <Filter>voxelstuff</Filter>
+    </None>
+    <None Include="src\main\particle_buffer.inl">
+      <Filter>particles</Filter>
+    </None>
+    <None Include="src\main\particle_container.inl">
+      <Filter>particles</Filter>
+    </None>
   </ItemGroup>
 </Project>

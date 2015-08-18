@@ -9,13 +9,17 @@
 #include "voxel_mesh_builder.h"
 #include "voxel_material.h"
 #include "voxel_model_serialiser.h"
+#include "vox_model_loader.h"
 
 static const glm::vec3 c_floorTotalSize(128.0f);
 
 Floor::Floor()
 	: m_sectionsPerSide(0)
 	, m_isSaving(0)
+	, m_isLoading(0)
 	, m_totalWritesPending(0)
+	, m_loadInProgress(0)
+	, m_totalVbBytes(0)
 {
 }
 
@@ -27,6 +31,19 @@ Floor::~Floor()
 Floor::SectionDesc& Floor::GetSection(int32_t x, int32_t z)
 {
 	return m_sections[x + (z * m_sectionsPerSide)];
+}
+
+void Floor::DisplayDebugGui(DebugGui::DebugGuiSystem& gui)
+{
+	m_stats.UpdateStats(m_totalBounds, m_sectionSize, m_totalWritesPending.Get(), m_totalVbBytes.Get(), m_voxelData.TotalVoxelMemory());
+	m_stats.DisplayDebugGui(gui);
+}
+
+bool Floor::LoadFile(const char* filename)
+{
+	m_loadFilename = filename;
+	m_isLoading = true;
+	return true;
 }
 
 void Floor::Create(SDE::JobSystem* jobSystem, VoxelMaterialSet& materials, const glm::vec3& floorSize, int32_t sectionDimensions)
@@ -87,8 +104,12 @@ void Floor::RebuildDirtyMeshes()
 
 		auto& section = GetSection(sectionX, sectionY);
 
+		m_totalVbBytes.Add(-(int32_t)section.m_renderMesh.TotalVertexBufferBytes());
+
 		// Update the section render mesh
-		it.second.CreateMesh(section.m_renderMesh);
+		it.second.CreateMesh(section.m_renderMesh, 1024 * 32);
+
+		m_totalVbBytes.Add((int32_t)section.m_renderMesh.TotalVertexBufferBytes());
 	}
 }
 
@@ -112,12 +133,24 @@ void Floor::RemeshSection(int32_t x, int32_t z)
 	// We basically do everything but actually update the gpu data (it must happen in the main thread)
 	Render::MeshBuilder meshBuilder;
 	VoxelMeshBuilder voxelMeshBuilder;
+
 	voxelMeshBuilder.BuildMeshData(m_voxelData, m_materials, thisSection.m_bounds, meshBuilder);
 
 	if (meshBuilder.HasData())
 	{
 		AddSectionMeshResult(x, z, meshBuilder);
 	}
+}
+
+void Floor::SubmitRemeshJob(const Math::Box3& updateBounds, int32_t x, int32_t z)
+{
+	auto updateJob = [this, updateBounds, x, z]
+	{
+		auto& thisSection = GetSection(x, z);
+		RemeshSection(x, z);
+	};
+
+ 	m_jobSystem->PushJob(updateJob);
 }
 
 void Floor::SubmitUpdateJob(const Math::Box3& updateBounds, int32_t x, int32_t z, const Vox::ModelAreaDataWriter<VoxelModel>::AreaCallback& iterator)
@@ -185,6 +218,11 @@ void Floor::ModifyData(const Math::Box3& bounds, const Vox::ModelAreaDataWriter<
 		return;
 	}
 
+	if (m_isLoading.Get() == 1)
+	{
+		return;
+	}
+
 	// clamp modification bounds to the floor bounds
 	glm::vec3 minEditBounds = glm::clamp(bounds.Min(), m_totalBounds.Min(), m_totalBounds.Max());
 	glm::vec3 maxEditBounds = glm::clamp(bounds.Max(), m_totalBounds.Min(), m_totalBounds.Max());
@@ -221,6 +259,34 @@ void Floor::Update()
 			};
 			m_jobSystem->PushJob(savingJob, "Floor::Save");
 			m_isSaving.Set(0);
+		}
+	}
+	else if (m_isLoading.Get() == 1)
+	{
+		if (m_totalWritesPending.Get() == 0)
+		{
+			auto loadingJob = [this]()
+			{
+				VoxelModelLoader<VoxelModel> loader;
+				auto bounds = m_voxelData.GetTotalBounds();
+				m_voxelData.RemoveAllBlocks();
+				loader.LoadFromFile(m_voxelData, m_loadFilename.c_str(), [](glm::ivec3 blockIndex)
+				{
+				});
+				for (int32_t z = 0; z < m_sectionsPerSide; ++z)
+				{
+					for (int32_t x = 0; x < m_sectionsPerSide; ++x)
+					{
+						Math::Box3 sectionBounds;
+						sectionBounds.Min() = glm::vec3(x * m_sectionSize.x, m_sectionSize.y, z * m_sectionSize.z);
+						sectionBounds.Max() = sectionBounds.Min() + m_sectionSize;
+						SubmitRemeshJob(sectionBounds, x, z);
+					}
+				}
+			};	
+			m_jobSystem->PushJob(loadingJob, "Floor::Load");
+			m_loadInProgress.Add(1);
+			m_isLoading.Set(0);
 		}
 	}
 }
