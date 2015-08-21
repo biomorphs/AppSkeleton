@@ -1,0 +1,15 @@
+{
+	"asset" : {
+		"id" : "pointsprite_simple_shader",
+		"typeid" : "RSHP",
+		"data" : {
+			"vertexshader" : "shaders/pointsprite_vertex.txt",
+			"fragmentshader" : "shaders/pointsprite_fragment.txt",
+			"uniforms" : [
+				"modelview",
+				"projection",
+				"screenSize_spriteSize"
+			]
+		}
+	}
+}

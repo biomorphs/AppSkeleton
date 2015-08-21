@@ -1,0 +1,10 @@
+{
+	"asset" : {
+		"id" : "pointsprite_simple_material",
+		"typeid" : "RMAT",
+		"dependencies" : ["pointsprite_simple_shader"],
+		"data" : {
+			"shader_program" : "pointsprite_simple_shader"
+		}
+	}
+}

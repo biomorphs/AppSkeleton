@@ -15,12 +15,15 @@ public:
 
 	typedef __m128 PositionType;
 	typedef __m128 VelocityType;
+	typedef __m128 ColourType;
 	typedef float LifetimeType;
 
 	inline const ParticleBuffer<PositionType>& Positions() const { return m_position; }
 	inline ParticleBuffer<PositionType>& Positions() { return m_position; }
 	inline const ParticleBuffer<VelocityType>& Velocities() const { return m_velocity; }
 	inline ParticleBuffer<VelocityType>& Velocities() { return m_velocity; }
+	inline const ParticleBuffer<ColourType>& Colours() const { return m_colour; }
+	inline ParticleBuffer<ColourType>& Colours() { return m_colour; }
 	inline const ParticleBuffer<LifetimeType>& Lifetimes() const { return m_lifetime; }
 	inline ParticleBuffer<LifetimeType>& Lifetimes() { return m_lifetime; }
 
@@ -36,6 +39,7 @@ private:
 
 	ParticleBuffer<PositionType> m_position;
 	ParticleBuffer<VelocityType> m_velocity;
+	ParticleBuffer<ColourType> m_colour;
 	ParticleBuffer<LifetimeType> m_lifetime;
 };
 

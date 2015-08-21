@@ -39,7 +39,7 @@ public:
 	bool Tick();
 	void Shutdown();
 
-	void SpawnParticlesAt(glm::vec3 position);
+	void SpawnParticlesAt(glm::vec3 position, glm::vec4 colour);
 
 private:
 
@@ -60,5 +60,6 @@ private:
 	DebugGui::DebugGuiSystem* m_debugGui;
 	ParticleManager* m_particles;
 	uint32_t m_forwardPassId;
+	uint32_t m_particlesPassId;
 	uint32_t m_debugRenderPassId;
 };

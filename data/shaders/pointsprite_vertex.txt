@@ -1,0 +1,21 @@
+#version 330 core
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 colour;
+
+out vec4 colourOut;
+
+uniform mat4 modelview;
+uniform mat4 projection;
+uniform vec4 screenSize_spriteSize;
+
+void main()
+{
+	vec4 posFixed = vec4(position.xyz,1.0);
+	
+	vec4 eyePos = modelview * posFixed;
+    vec4 projVoxel = projection * vec4(screenSize_spriteSize.z,screenSize_spriteSize.z,eyePos.z,eyePos.w);
+    vec2 projSize = vec2(screenSize_spriteSize.x,screenSize_spriteSize.y) * projVoxel.xy / projVoxel.w;
+    gl_PointSize = 0.25 * (projSize.x+projSize.y);
+    gl_Position = projection * eyePos;
+	colourOut = colour;
+}

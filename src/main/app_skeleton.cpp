@@ -67,7 +67,27 @@ struct RaymarchTester
 	{
 		if (params.VoxelData() != 0)
 		{
-			m_app->SpawnParticlesAt(params.VoxelPosition());
+			auto mat = GetVoxelMaterial(params.VoxelData());
+			glm::vec4 particleColour(1.0f);
+			switch (mat)
+			{
+			case Materials::OuterWall:
+				particleColour = glm::vec4(0.686f, 0.686f, 0.686f, 1.0f);
+				break;
+			case Materials::Walls:
+				particleColour = glm::vec4(0.581f, 0.315f, 0.231f, 1.0f);
+				break;
+			case Materials::Floor:
+				particleColour = glm::vec4(0.9f, 0.9f, 0.9f, 1.0f);
+				break;
+			case Materials::Carpet:
+				particleColour = glm::vec4(0.269f, 0.574f, 0.261f, 1.0f);
+				break;
+			case Materials::Pillars:
+				particleColour = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+				break;
+			}
+			m_app->SpawnParticlesAt(params.VoxelPosition(), particleColour);
 			ShotTest shot;
 			shot.m_radius = m_radius;
 			shot.m_center = params.VoxelPosition();
@@ -107,13 +127,14 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 	m_testFloor = std::make_unique<Floor>();
 	m_testFloor->Create(m_jobSystem, floorMaterials, glm::vec3(128.0f, 8.0f, 128.0f), 16);
 
-	// We now populate the world data, then save it
+//	// We now populate the world data, then save it
 //	TestRoomBuilder valFiller;
 //#ifdef SDE_DEBUG
 //	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(16.0f,8.0f,16.0f)), valFiller, "models/test.vox");
 //#else
 //	m_testFloor->ModifyDataAndSave(Math::Box3(glm::vec3(0.0f), glm::vec3(128.0f, 8.0f, 128.0f)), valFiller, "models/test_big.vox");
 //#endif
+
 #ifdef SDE_DEBUG
 	m_testFloor->LoadFile("models/test.vox");
 #else
@@ -153,6 +174,10 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	m_renderSystem->GetPass(guiPassId).GetRenderState().m_depthTestEnabled = false;
 	m_renderSystem->GetPass(guiPassId).GetRenderState().m_backfaceCullEnabled = false;
 
+	m_particlesPassId = m_renderSystem->CreatePass("Particles");
+	m_renderSystem->GetPass(m_particlesPassId).GetRenderState().m_blendingEnabled = true;
+	m_renderSystem->GetPass(m_particlesPassId).GetRenderState().m_backfaceCullEnabled = false;
+
 	// Set up debug gui data
 	DebugGui::DebugGuiSystem::InitialisationParams guiParams(m_renderSystem, m_inputSystem, guiPassId);
 	m_debugGui->SetInitialiseParams(guiParams);
@@ -167,25 +192,30 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	return true;
 }
 
-void AppSkeleton::SpawnParticlesAt(glm::vec3 position)
+void AppSkeleton::SpawnParticlesAt(glm::vec3 position, glm::vec4 colour)
 {
-	ParticleEffect* effect = m_particles->AddEffect(128);
+	ParticleEffect* effect = m_particles->AddEffect(16);
 	if (effect && m_pointRender.get() != nullptr)
 	{
-		effect->AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitBurst(128)));
+		effect->AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitBurst(16)));
 
 		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateStaticPosition(position)));
-		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateSimpleLifetime(1.5f)));
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateRandomLifetime(0.5f, 1.5f)));
 
-		static glm::vec3 velMin(-1.5f, -1.5f, -1.5f);
-		static glm::vec3 velMax(1.5f, 2.5f, 1.5f);
+		static glm::vec3 velMin(-2.0f, -1.0f, -2.0f);
+		static glm::vec3 velMax(2.0f, 2.0f, 2.0f);
 		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateRandomVelocity(velMin, velMax)));
 
-		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::EulerPositionUpdater()));
+		auto colourUpdater = new ParticleEffects::ColourFader(
+			colour,
+			colour * glm::vec4(0.0f, 0.0f, 0.0f, 0.5f),
+			0.0f, 1.5f);
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(colourUpdater));
+
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::EulerFloorBouncer(0.25f)));
 		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::GravityUpdater(-5.0f)));
 		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::KillOnZeroLife()));
 		effect->AddRenderer(m_pointRender);
-		effect->AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::NullRender()));
 
 		effect->SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::KillOnZeroParticles()));
 
@@ -196,6 +226,7 @@ void AppSkeleton::SpawnParticlesAt(glm::vec3 position)
 void AppSkeleton::InitialiseParticles(std::shared_ptr<Assets::Asset>& materialAsset)
 {
 	m_pointRender = std::make_shared<PointSpriteParticleRenderer>(m_debugRender.get());
+	m_pointRender->Create(materialAsset);
 }
 
 bool AppSkeleton::PostInit()
@@ -219,8 +250,14 @@ bool AppSkeleton::PostInit()
 	});
 
 	// load particle material, on completion, setup particles
-	std::shared_ptr<Assets::Asset> mat;
-	InitialiseParticles(mat);
+	m_assetSystem->LoadAsset("pointsprite_simple_material", [this](const std::string& asset, bool result)
+	{
+		if (result)
+		{
+			auto loadedAsset = this->m_assetSystem->GetAsset(asset);
+			InitialiseParticles(loadedAsset);
+		}
+	});
 
 	return true;
 }
@@ -294,7 +331,8 @@ bool AppSkeleton::Tick()
 
 	if ((m_inputSystem->ControllerState(0)->m_buttonState & Input::ControllerButtons::X))
 	{
-		SpawnParticlesAt(m_camera.Position());
+		auto camLookAt = glm::normalize(m_camera.Target() - m_camera.Position());
+		SpawnParticlesAt(m_camera.Position() + (camLookAt * 2.0f), glm::vec4(0.0f,0.0f,1.0f,1.0f));
 	}
 
 	// Particles stats
@@ -311,6 +349,12 @@ bool AppSkeleton::Tick()
 		m_testFloor->Render(m_camera, forwardPass);
 	}
 
+	auto &particlePass = m_renderSystem->GetPass(m_particlesPassId);
+	if (m_pointRender != nullptr)
+	{
+		m_pointRender->PushToRenderPass(m_camera, particlePass);
+	}
+
 	auto& debugPass = m_renderSystem->GetPass(m_debugRenderPassId);
 	m_debugRender->PushToRenderPass(m_camera, debugPass);
 
@@ -319,6 +363,7 @@ bool AppSkeleton::Tick()
 
 void AppSkeleton::Shutdown()
 {	
+	m_pointRender = nullptr;
 	m_debugRender = nullptr;
 	m_testFloor = nullptr;
 	m_debugCameraController = nullptr;

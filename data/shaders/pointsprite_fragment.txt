@@ -1,0 +1,9 @@
+#version 330 core
+
+in vec4 colourOut;
+out vec4 colour;
+
+void main()
+{
+    colour = colourOut;
+}

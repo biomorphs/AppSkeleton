@@ -71,6 +71,21 @@ namespace ParticleEffects
 		glm::vec4 m_vMax;
 	};
 
+	class GenerateRandomLifetime : public ParticleGenerator
+	{
+	public:
+		GenerateRandomLifetime(float tMin, float tMax)
+			: m_timeMin(tMin)
+			, m_timeMax(tMax)
+		{
+		}
+		virtual ~GenerateRandomLifetime() {}
+		virtual void Generate(double deltaTime, ParticleContainer& container, uint32_t startIndex, uint32_t endIndex);
+	private:
+		float m_timeMin;
+		float m_timeMax;
+	};
+
 	class GenerateSimpleLifetime : public ParticleGenerator
 	{
 	public:
@@ -108,6 +123,30 @@ namespace ParticleEffects
 		EulerPositionUpdater() {}
 		virtual ~EulerPositionUpdater() {}
 		virtual void Update(double deltaTime, ParticleContainer& container);
+	};
+
+	class EulerFloorBouncer : public ParticleUpdater
+	{
+	public:
+		EulerFloorBouncer(const float floorHeight) : m_floorHeight(floorHeight) {}
+		virtual ~EulerFloorBouncer() {}
+		virtual void Update(double deltaTime, ParticleContainer& container);
+	private:
+		float m_floorHeight;
+	};
+
+	class ColourFader : public ParticleUpdater
+	{
+	public:
+		ColourFader(const glm::vec4& c0, const glm::vec4& c1, float ltStart, float ltEnd) 
+			: m_c0(c0), m_c1(c1), m_lifetimeStart(ltStart), m_lifetimeEnd(ltEnd) {}
+		virtual ~ColourFader() {}
+		virtual void Update(double deltaTime, ParticleContainer& container);
+	private:
+		__declspec(align(16)) glm::vec4 m_c0;
+		__declspec(align(16)) glm::vec4 m_c1;
+		float m_lifetimeStart;
+		float m_lifetimeEnd;
 	};
 
 	class KillOnZeroLife : public ParticleUpdater

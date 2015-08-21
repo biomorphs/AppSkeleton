@@ -28,6 +28,7 @@ inline void ParticleContainer::Create(uint32_t maxParticles)
 	m_position.Create(maxParticles);
 	m_lifetime.Create(maxParticles);
 	m_velocity.Create(maxParticles);
+	m_colour.Create(maxParticles);
 }
 
 inline uint32_t ParticleContainer::Wake(uint32_t count)
@@ -44,6 +45,9 @@ inline uint32_t ParticleContainer::Wake(uint32_t count)
 	const uint32_t vIndex = m_velocity.Wake(count);
 	SDE_ASSERT(vIndex == newIndex);
 
+	const uint32_t cIndex = m_colour.Wake(count);
+	SDE_ASSERT(cIndex == newIndex);
+
 	m_livingParticles += count;
 
 	return newIndex;
@@ -57,6 +61,7 @@ inline void ParticleContainer::Kill(uint32_t index)
 		m_position.Kill(index);
 		m_lifetime.Kill(index);
 		m_velocity.Kill(index);
+		m_colour.Kill(index);
 
 		--m_livingParticles;
 	}
