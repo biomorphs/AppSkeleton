@@ -1,5 +1,6 @@
 #include "particle_manager.h"
 #include "particle_effect.h"
+#include "particles_stats.h"
 #include <algorithm>
 
 ParticleManager::ParticleManager()
@@ -12,6 +13,21 @@ ParticleManager::ParticleManager()
 ParticleManager::~ParticleManager()
 {
 
+}
+
+void ParticleManager::PopulateStats(ParticlesStats& target)
+{
+	uint32_t activeEffects = (uint32_t)m_activeEffects.size();
+	uint32_t activeParticles = 0;
+	size_t activeMemory = 0;
+	size_t totalMemory = 0;
+	for (const auto& it : m_activeEffects)
+	{
+		activeParticles += it->AliveParticles();
+		activeMemory += it->AliveParticles() * it->ParticleSizeBytes();
+		totalMemory += it->MaxParticles() * it->ParticleSizeBytes();
+	}
+	target.UpdateStats(activeEffects, activeParticles, activeMemory, totalMemory, m_lastUpdateTime);
 }
 
 ParticleEffect* ParticleManager::AddEffect(uint32_t maxParticles)
@@ -54,6 +70,8 @@ bool ParticleManager::Tick()
 	elapsedSeconds = std::max(elapsedSeconds, 0.003125);	// Clamp fastest update to 320fps
 	elapsedSeconds = std::min(elapsedSeconds, 1.0);			// Clamp slowest update to 1 fps
 	auto effectCount = m_activeEffects.size();
+
+	uint64_t startTime = thisTime;
 	for (auto i = 0; i < effectCount; ++i)
 	{
 		auto effect = m_activeEffects[i];
@@ -63,6 +81,8 @@ bool ParticleManager::Tick()
 			m_effectsToKill.push_back(i);
 		}
 	}
+	uint64_t endTime = m_timer.GetTicks();
+	m_lastUpdateTime = (double)(endTime - startTime) / (double)m_timer.GetFrequency();
 
 	for (int32_t i = (int32_t)m_effectsToKill.size() - 1; i >= 0; --i)
 	{

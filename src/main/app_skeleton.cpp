@@ -3,6 +3,7 @@
 #include "particle_manager.h"
 #include "particle_effect.h"
 #include "particle_effects.h"
+#include "particles_stats.h"
 
 #include "core/system_enumerator.h"
 #include "core/timer.h"
@@ -120,31 +121,6 @@ void AppSkeleton::InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset)
 #endif
 }
 
-void AppSkeleton::SpawnParticlesAt(glm::vec3 position)
-{
-	ParticleEffect* effect = m_particles->AddEffect(1024);
-	if (effect)
-	{
-		effect->AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitBurst(16)));
-
-		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateStaticPosition(position)));
-		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateSimpleLifetime(1.0f)));
-		static glm::vec3 velMin(-1.0f, -1.0f, -1.0f);
-		static glm::vec3 velMax(1.0f, 1.0f, 1.0f);
-		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateRandomVelocity(velMin, velMax)));
-
-		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::EulerPositionUpdater()));
-		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::GravityUpdater(-5.0f)));
-		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::KillOnZeroLife()));
-
-		effect->AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::DebugParticleRenderer(m_debugRender.get())));
-
-		effect->SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::KillOnZeroParticles()));
-
-		m_particles->StartEffect(effect);
-	}
-}
-
 AppSkeleton::AppSkeleton()
 {
 }
@@ -191,12 +167,41 @@ bool AppSkeleton::PreInit(Core::ISystemEnumerator& systemEnumerator)
 	return true;
 }
 
+void AppSkeleton::SpawnParticlesAt(glm::vec3 position)
+{
+	ParticleEffect* effect = m_particles->AddEffect(128);
+	if (effect && m_pointRender.get() != nullptr)
+	{
+		effect->AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitBurst(128)));
+
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateStaticPosition(position)));
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateSimpleLifetime(1.5f)));
+
+		static glm::vec3 velMin(-1.5f, -1.5f, -1.5f);
+		static glm::vec3 velMax(1.5f, 2.5f, 1.5f);
+		effect->AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateRandomVelocity(velMin, velMax)));
+
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::EulerPositionUpdater()));
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::GravityUpdater(-5.0f)));
+		effect->AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::KillOnZeroLife()));
+		effect->AddRenderer(m_pointRender);
+		effect->AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::NullRender()));
+
+		effect->SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::KillOnZeroParticles()));
+
+		m_particles->StartEffect(effect);
+	}
+}
+
+void AppSkeleton::InitialiseParticles(std::shared_ptr<Assets::Asset>& materialAsset)
+{
+	m_pointRender = std::make_shared<PointSpriteParticleRenderer>(m_debugRender.get());
+}
+
 bool AppSkeleton::PostInit()
 {
-	ParticleTests::RunTests();
-
 	m_debugRender = std::make_unique<SDE::DebugRender>();
-	m_debugRender->Create(1024 * 1024);
+	m_debugRender->Create();
 
 	m_debugCameraController = std::make_unique<SDE::DebugCameraController>();
 	m_debugCameraController->SetPosition(glm::vec3(64.0f, 20.0f, 64.0f));
@@ -212,6 +217,10 @@ bool AppSkeleton::PostInit()
 			InitialiseFloor(loadedAsset);
 		}
 	});
+
+	// load particle material, on completion, setup particles
+	std::shared_ptr<Assets::Asset> mat;
+	InitialiseParticles(mat);
 
 	return true;
 }
@@ -287,6 +296,11 @@ bool AppSkeleton::Tick()
 	{
 		SpawnParticlesAt(m_camera.Position());
 	}
+
+	// Particles stats
+	static ParticlesStats pStats;
+	m_particles->PopulateStats(pStats);
+	pStats.DisplayDebugGui(*m_debugGui);
 		
 	// Rendering
 	m_renderSystem->SetClearColour(glm::vec4(0.14f, 0.23f, 0.45f, 1.0f));

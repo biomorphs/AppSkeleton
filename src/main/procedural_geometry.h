@@ -1,7 +1,7 @@
 #pragma once
 
-#include <glm.hpp>
-#include <gtx\norm.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 inline float Sphere(const glm::vec3& voxelPosition, const glm::vec3& center, float radius)
 {

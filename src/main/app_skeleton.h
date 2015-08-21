@@ -2,6 +2,7 @@
 
 #include "voxel_definitions.h"
 #include "floor.h"
+#include "pointsprite_particle_renderer.h"
 #include "core/system.h"
 #include "sde/debug_camera_controller.h"
 #include "render/camera.h"
@@ -44,8 +45,10 @@ private:
 
 	static const uint32_t c_windowWidth = 1280;
 	static const uint32_t c_windowHeight = 720;
+	void InitialiseParticles(std::shared_ptr<Assets::Asset>& materialAsset);
 	void InitialiseFloor(std::shared_ptr<Assets::Asset>& materialAsset);
 
+	std::shared_ptr<PointSpriteParticleRenderer> m_pointRender;
 	std::unique_ptr<SDE::DebugRender> m_debugRender;
 	std::unique_ptr<Floor> m_testFloor;
 	std::unique_ptr<SDE::DebugCameraController> m_debugCameraController;

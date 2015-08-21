@@ -13,6 +13,7 @@ class ParticleGenerator;
 class ParticleUpdater;
 class ParticleRenderer;
 class ParticleEffectLifetime;
+class ParticlesStats;
 
 class ParticleManager : public Core::ISystem
 {
@@ -23,15 +24,18 @@ public:
 	ParticleEffect* AddEffect(uint32_t maxParticles);
 	void StartEffect(ParticleEffect* effect);
 
+	void PopulateStats(ParticlesStats& target);
+
 	virtual bool PreInit(Core::ISystemEnumerator& systemEnumerator);
 	virtual bool Initialise();
 	virtual bool Tick();
 	virtual void Shutdown();
 
 private:
-	static const uint32_t c_maxEffects = 1024;
+	static const uint32_t c_maxEffects = 16 * 1024;
 	Core::ObjectPool< ParticleEffect > m_effectPool;
 	std::vector<ParticleEffect*> m_activeEffects;
 	std::vector<uint32_t> m_effectsToKill;
+	double m_lastUpdateTime;
 	Core::Timer m_timer;
 };

@@ -15,6 +15,11 @@ inline ParticleContainer::~ParticleContainer()
 {
 }
 
+inline size_t ParticleContainer::ParticleSizeBytes() const
+{
+	return m_position.DataSize + m_lifetime.DataSize + m_velocity.DataSize;
+}
+
 inline void ParticleContainer::Create(uint32_t maxParticles)
 {
 	m_maxParticles = maxParticles;
@@ -27,7 +32,7 @@ inline void ParticleContainer::Create(uint32_t maxParticles)
 
 inline uint32_t ParticleContainer::Wake(uint32_t count)
 {
-	SDE_ASSERT(m_livingParticles + count < m_maxParticles);
+	SDE_ASSERT(m_livingParticles + count <= m_maxParticles);
 	const uint32_t newIndex = m_livingParticles;
 
 	const uint32_t pIndex = m_position.Wake(count);
@@ -46,8 +51,8 @@ inline uint32_t ParticleContainer::Wake(uint32_t count)
 
 inline void ParticleContainer::Kill(uint32_t index)
 {
-	SDE_ASSERT(m_livingParticles + index < m_maxParticles);
-	if (m_livingParticles + index < m_maxParticles && m_livingParticles > 0)
+	SDE_ASSERT(index < m_maxParticles);
+	if (index < m_livingParticles)
 	{
 		m_position.Kill(index);
 		m_lifetime.Kill(index);

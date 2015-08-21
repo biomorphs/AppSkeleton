@@ -34,6 +34,12 @@
     <ClCompile Include="src\main\particle_manager.cpp">
       <Filter>particles</Filter>
     </ClCompile>
+    <ClCompile Include="src\main\particles_stats.cpp">
+      <Filter>particles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\pointsprite_particle_renderer.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\voxel_model_serialiser.inl">
@@ -104,6 +110,12 @@
     </ClInclude>
     <ClInclude Include="src\main\particle_manager.h">
       <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\particles_stats.h">
+      <Filter>particles</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\pointsprite_particle_renderer.h">
+      <Filter>app</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -27,6 +27,8 @@ public:
 	void AddUpdater(std::shared_ptr<ParticleUpdater> updater);
 	void AddRenderer(std::shared_ptr<ParticleRenderer> render);
 	inline uint32_t AliveParticles() const { return m_particles.AliveParticles(); }
+	inline uint32_t MaxParticles() const { return m_particles.MaxParticles(); }
+	inline size_t ParticleSizeBytes() const { return m_particles.ParticleSizeBytes(); }
 
 	bool Update(double deltaTime);
 private:

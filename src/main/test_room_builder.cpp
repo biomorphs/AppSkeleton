@@ -1,6 +1,6 @@
 #include "test_room_builder.h"
 #include "procedural_geometry.h"
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <algorithm>
 
 inline uint8_t Pillar(const glm::vec3& vox, const glm::vec3& bl, const glm::vec3& tr)

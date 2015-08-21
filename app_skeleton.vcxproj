@@ -33,7 +33,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <IncludePath>$(SolutionDir)..\SDLEngine\external\rapidjson\include;$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm\glm;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\SDLEngine\external\rapidjson\include;$(SolutionDir)..\SDLEngine\engine\public;$(SolutionDir)..\SDLEngine\external\glm-0.9.6.3\glm;$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='Win32'">
     <LibraryPath>$(SolutionDir)..\SDLEngine\external\SDL2-2.0.1\lib\x86;$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
@@ -92,7 +92,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -123,20 +122,26 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     </ClCompile>
     <ClCompile>
     </ClCompile>
+    <ClCompile>
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\main\floor.cpp" />
     <ClCompile Include="src\main\floor_stats.cpp" />
     <ClCompile Include="src\main\main.cpp" />
     <ClCompile Include="src\main\app_skeleton.cpp" />
+    <ClCompile Include="src\main\particles_stats.cpp" />
     <ClCompile Include="src\main\particle_effects.cpp" />
     <ClCompile Include="src\main\particle_effect.cpp" />
     <ClCompile Include="src\main\particle_manager.cpp" />
     <ClCompile Include="src\main\particle_tests.cpp" />
+    <ClCompile Include="src\main\pointsprite_particle_renderer.cpp" />
     <ClCompile Include="src\main\test_room_builder.cpp" />
     <ClCompile Include="src\main\voxel_material.cpp" />
     <ClCompile Include="src\main\voxel_mesh_builder.cpp" />
     <ClInclude Include="src\main\floor_stats.h" />
+    <ClInclude Include="src\main\particles_stats.h" />
     <ClInclude Include="src\main\particle_container.h" />
     <ClInclude Include="src\main\particle_buffer.h" />
     <ClInclude Include="src\main\particle_effects.h" />
@@ -148,6 +153,7 @@ copy "$(SolutionDir)..\SDLEngine\external\glew-1.12.0-win32\glew-1.12.0\bin\Rele
     <ClInclude Include="src\main\particle_effect.h" />
     <ClInclude Include="src\main\particle_tests.h" />
     <ClInclude Include="src\main\particle_updater.h" />
+    <ClInclude Include="src\main\pointsprite_particle_renderer.h" />
     <ClInclude Include="src\main\voxel_model_serialiser.inl">
       <FileType>CppCode</FileType>
     </ClInclude>

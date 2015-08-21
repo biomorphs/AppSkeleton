@@ -6,6 +6,7 @@
 #include "particle_renderer.h"
 #include "particle_effect.h"
 #include "particle_effects.h"
+#include <glm/gtc/type_ptr.hpp>
 
 namespace ParticleTests
 {
@@ -30,33 +31,25 @@ namespace ParticleTests
 		}
 	};
 
-	class NullRender : public ParticleRenderer
-	{
-	public:
-		NullRender() {}
-		virtual ~NullRender() {}
-		virtual void Render(double deltaTime, const ParticleContainer& container)
-		{
-		}
-	};
-
 	class TestPositionUpdater : public ParticleUpdater
 	{
 	public:
 		TestPositionUpdater(const glm::vec3& pos) 
-			: m_position(pos)
+			: m_position(pos, 0.0f)
 		{
 		}
 		virtual ~TestPositionUpdater() {}
 		virtual void Update(double deltaTime, ParticleContainer& container)
 		{
+			__declspec(align(16)) glm::vec4 testPosition;
 			for (uint32_t i = 0; i < container.AliveParticles(); ++i)
 			{
-				SDE_ASSERT(container.Positions().GetValue(i) == m_position);
+				_mm_store_ps(glm::value_ptr(testPosition), container.Positions().GetValue(i));
+				SDE_ASSERT(testPosition == m_position);
 			}
 		}
 	private:
-		glm::vec3 m_position;
+		glm::vec4 m_position;
 	};
 
 	void NullTest()
@@ -65,7 +58,7 @@ namespace ParticleTests
 		testSystem.AddEmitter(std::shared_ptr<ParticleEmitter>(new NullEmitter()));
 		testSystem.AddGenerator(std::shared_ptr<ParticleGenerator>(new NullGenerator()));
 		testSystem.AddUpdater(std::shared_ptr<ParticleUpdater>(new ParticleEffects::NullUpdater()));
-		testSystem.AddRenderer(std::shared_ptr<ParticleRenderer>(new NullRender()));
+		testSystem.AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::NullRender()));
 		testSystem.SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::LiveForever()));
 		for (int32_t i = 0;i < 10;++i)
 		{
@@ -79,7 +72,7 @@ namespace ParticleTests
 		testSystem.AddEmitter(std::shared_ptr<ParticleEmitter>(new ParticleEffects::EmitStaticCount(10)));
 		testSystem.AddGenerator(std::shared_ptr<ParticleGenerator>(new ParticleEffects::GenerateStaticPosition(glm::vec3(0.0f))));
 		testSystem.AddUpdater(std::shared_ptr<ParticleUpdater>(new TestPositionUpdater(glm::vec3(0.0f))));
-		testSystem.AddRenderer(std::shared_ptr<ParticleRenderer>(new NullRender()));
+		testSystem.AddRenderer(std::shared_ptr<ParticleRenderer>(new ParticleEffects::NullRender()));
 		testSystem.SetLifetime(std::shared_ptr<ParticleEffectLifetime>(new ParticleEffects::LiveForever()));
 		for (int32_t i = 0;i < 10;++i)
 		{
